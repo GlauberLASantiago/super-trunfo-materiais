@@ -81,6 +81,7 @@ const i18n = {
         yourTurn: "Sua Vez!", cpuTurn: "Vez da CPU...",
         clickStat: "Clique em um atributo da sua carta para desafiar.",
         cpuThinking: "A CPU está analisando os materiais...",
+        comparing: "Analisando...",
         youWonRound: "Você Ganhou a Rodada!", cpuWonRound: "A CPU Ganhou a Rodada!", roundDraw: "Empate!",
         nextRound: "Próxima Rodada",
         gameOver: "Fim de Jogo", youWonGame: "Você Venceu o Jogo!", cpuWonGame: "A CPU Venceu!",
@@ -101,6 +102,7 @@ const i18n = {
         yourTurn: "Your Turn!", cpuTurn: "CPU's Turn...",
         clickStat: "Click an attribute on your card to challenge.",
         cpuThinking: "The CPU is analyzing the materials...",
+        comparing: "Analyzing...",
         youWonRound: "You Won the Round!", cpuWonRound: "CPU Won the Round!", roundDraw: "Draw!",
         nextRound: "Next Round",
         gameOver: "Game Over", youWonGame: "You Won the Game!", cpuWonGame: "The CPU Won!",
@@ -281,7 +283,7 @@ const MASTER_DECK = [
 ];
 
 // --- GAME STATE ---
-let gameState = 'start'; // start, playing, result, gameover
+let gameState = 'start'; // start, playing, resolving, result, gameover
 let playerDeck = [];
 let cpuDeck = [];
 let tiedCards = [];
@@ -337,7 +339,16 @@ function handleStatSelect(statKey) {
     if (gameState !== 'playing' || turn !== 'player') return;
     playSfx('click');
     selectedStat = statKey;
-    resolveRound(statKey);
+    
+    // Inicia suspense
+    gameState = 'resolving';
+    playSfx('tick');
+    render();
+    
+    // Aguarda 2 segundos antes de revelar o resultado
+    setTimeout(() => {
+        resolveRound(statKey);
+    }, 2000);
 }
 
 function resolveRound(statKey) {
@@ -394,7 +405,8 @@ function nextRound() {
 }
 
 function cpuPlayRound() {
-    if (gameState !== 'playing' || turn !== 'player' && cpuDeck.length === 0) return;
+    if (gameState !== 'playing' || turn !== 'cpu' || cpuDeck.length === 0) return;
+    
     const card = cpuDeck[0];
     let bestStat = 'maxTemp';
     let maxRel = -1;
@@ -412,7 +424,16 @@ function cpuPlayRound() {
     });
 
     selectedStat = bestStat;
-    resolveRound(bestStat);
+    
+    // Inicia suspense
+    gameState = 'resolving';
+    playSfx('tick');
+    render();
+
+    // Aguarda 2 segundos antes de revelar o resultado
+    setTimeout(() => {
+        resolveRound(bestStat);
+    }, 2000);
 }
 
 // --- RENDERING ---
@@ -482,13 +503,19 @@ function render() {
                 <!-- Center Panel -->
                 <div class="flex flex-col items-center justify-center w-full max-w-xs text-center order-first lg:order-none mb-4 lg:mb-0">
                     ${gameState === 'playing' ? `
-                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full">
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full transition-all">
                             <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
                             <h3 class="text-xl font-bold mb-2">${turn === 'player' ? t('yourTurn') : t('cpuTurn')}</h3>
                             <p class="text-slate-400 text-sm">${turn === 'player' ? t('clickStat') : t('cpuThinking')}</p>
                         </div>
+                    ` : gameState === 'resolving' ? `
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.3)] w-full flex flex-col items-center transform scale-105 transition-all">
+                            <i data-lucide="loader" class="w-12 h-12 mx-auto mb-4 text-yellow-400 animate-spin"></i>
+                            <h3 class="text-xl font-black mb-2 text-white">${t('comparing')}</h3>
+                            <p class="text-yellow-400 font-bold text-lg animate-pulse uppercase tracking-wider">${t('stats', selectedStat)}</p>
+                        </div>
                     ` : `
-                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center">
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center transition-all">
                             <h3 class="text-xl font-black mb-2 text-white">
                                 ${roundWinner === 'player' ? t('youWonRound') : roundWinner === 'cpu' ? t('cpuWonRound') : t('roundDraw')}
                             </h3>
@@ -503,7 +530,7 @@ function render() {
                 <!-- CPU Card -->
                 <div class="flex flex-col items-center">
                     <h3 class="mb-4 text-xl font-semibold text-red-300">${t('cpuCard')}</h3>
-                    ${getCardHTML(cpuDeck[0], gameState === 'playing', gameState === 'result' ? roundWinner === 'cpu' : null, false)}
+                    ${getCardHTML(cpuDeck[0], gameState === 'playing' || gameState === 'resolving', gameState === 'result' ? roundWinner === 'cpu' : null, false)}
                 </div>
             </main>
         `;
@@ -517,7 +544,7 @@ function getCardHTML(card, isHidden, isWinner, isActive) {
     
     if (isHidden) {
         return `
-            <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
+            <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300">
                 <div class="absolute inset-0 opacity-20 card-hidden-bg"></div>
                 <i data-lucide="rocket" class="w-16 h-16 text-blue-300 mb-4 opacity-80"></i>
                 <h3 class="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">${t('title').replace(' ', '<br/>')}</h3>
@@ -659,6 +686,27 @@ function playSfx(type) {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
+    } else if (type === 'tick') {
+        // Efeito de relógio/tempo passando rápido (gera 4 tiques repetidos)
+        for (let i = 0; i < 4; i++) {
+            const tOsc = audioCtx.createOscillator();
+            const tGain = audioCtx.createGain();
+            tOsc.connect(tGain);
+            tGain.connect(audioCtx.destination);
+            
+            const time = now + (i * 0.5); // Toca a cada meio segundo
+            
+            tOsc.type = 'square'; 
+            tOsc.frequency.setValueAtTime(800, time);
+            tOsc.frequency.exponentialRampToValueAtTime(100, time + 0.05);
+            
+            tGain.gain.setValueAtTime(0, time);
+            tGain.gain.linearRampToValueAtTime(0.05, time + 0.01);
+            tGain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            
+            tOsc.start(time);
+            tOsc.stop(time + 0.06);
+        }
     } else if (type === 'win') {
         osc.type = 'square';
         osc.frequency.setValueAtTime(400, now);
