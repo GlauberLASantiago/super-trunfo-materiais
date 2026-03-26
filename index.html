@@ -1,0 +1,407 @@
+import React, { useState, useEffect } from 'react';
+import { Rocket, Activity, Shield, Flame, Zap, DollarSign, RefreshCw, Trophy, AlertCircle } from 'lucide-react';
+
+// Dados extraídos das cartas da imagem + algumas cartas adicionais para compor o baralho
+const MASTER_DECK = [
+  {
+    id: 1,
+    title: "Aquecedor de Sauna de Cerâmica",
+    type: "Ceramic Infrared Sauna Heater",
+    stats: { lifetime: 20, cost: 11, impact: 50, resistance: 14, maxTemp: 400 },
+    description: "Aquecedores emitem calor infravermelho suave e consistente. Elementos cerâmicos garantem eficiência energética e durabilidade.",
+    icon: Flame,
+    color: "bg-orange-500"
+  },
+  {
+    id: 2,
+    title: "Isolador de Porcelana",
+    type: "Porcelain Insulator for Power Lines",
+    stats: { lifetime: 100, cost: 45, impact: 93, resistance: 82, maxTemp: 300 },
+    description: "Cerâmicas fornecem excelente isolamento elétrico, resistem a intempéries e suportam altas tensões, mantendo a integridade estrutural.",
+    icon: Zap,
+    color: "bg-yellow-500"
+  },
+  {
+    id: 3,
+    title: "Telescópio Espacial",
+    type: "Space Telescope",
+    stats: { lifetime: 24, cost: 83, impact: 3, resistance: 100, maxTemp: 2000 },
+    description: "Espelhos de carbeto de silício (SiC) oferecem alta rigidez, baixo peso e excelente estabilidade térmica em ambientes extremos.",
+    icon: Rocket,
+    color: "bg-blue-600"
+  },
+  {
+    id: 4,
+    title: "Coroa Dentária de Zircônia",
+    type: "Zirconia Dental Crown",
+    stats: { lifetime: 86, cost: 11, impact: 85, resistance: 78, maxTemp: 1000 },
+    description: "Com força excepcional, durabilidade e biocompatibilidade, cerâmicas são ideais para restaurações sem metal duradouras.",
+    icon: Activity,
+    color: "bg-teal-500"
+  },
+  {
+    id: 5,
+    title: "Revest. Forno de Indução",
+    type: "Induction Furnace Lining",
+    stats: { lifetime: 52, cost: 50, impact: 32, resistance: 90, maxTemp: 2800 },
+    description: "Revestimento para forno elétrico que derrete metais via indução eletromagnética, oferecendo fusão eficiente e controlada.",
+    icon: Flame,
+    color: "bg-red-600"
+  },
+  {
+    id: 6,
+    title: "Plataforma de Lançamento",
+    type: "Launch pad",
+    stats: { lifetime: 24, cost: 83, impact: 4, resistance: 34, maxTemp: 3300 },
+    description: "Cerâmicas refratárias revestem defletores de chama, protegendo estruturas contra calor extremo, exaustão e corrosão de foguetes.",
+    icon: Rocket,
+    color: "bg-slate-700"
+  },
+  {
+    id: 7,
+    title: "Refratário para Parede de Forno",
+    type: "Kiln Wall Refractory",
+    stats: { lifetime: 80, cost: 50, impact: 60, resistance: 93, maxTemp: 1800 },
+    description: "Tijolos refratários vitais para o isolamento térmico na indústria siderúrgica e de produção de vidro.",
+    icon: Shield,
+    color: "bg-stone-600"
+  },
+  {
+    id: 8,
+    title: "Pastilha de Freio de Carbono",
+    type: "Carbon-Ceramic Brake Pad",
+    stats: { lifetime: 45, cost: 70, impact: 20, resistance: 95, maxTemp: 1500 },
+    description: "Usadas em veículos de alta performance, mantêm a capacidade de frenagem em temperaturas extremas sem deformar.",
+    icon: Activity,
+    color: "bg-zinc-800"
+  },
+  {
+    id: 9,
+    title: "Colete Balístico de Alumina",
+    type: "Alumina Armor Plate",
+    stats: { lifetime: 95, cost: 40, impact: 10, resistance: 98, maxTemp: 1200 },
+    description: "Placas cerâmicas que dissipam a energia cinética de projéteis através do estilhaçamento controlado, protegendo vidas.",
+    icon: Shield,
+    color: "bg-emerald-700"
+  },
+  {
+    id: 10,
+    title: "Substrato Eletrônico",
+    type: "AlN Electronic Substrate",
+    stats: { lifetime: 90, cost: 65, impact: 70, resistance: 60, maxTemp: 800 },
+    description: "Nitretos de Alumínio conduzem calor mas não eletricidade, fundamentais para resfriar microprocessadores modernos.",
+    icon: Zap,
+    color: "bg-indigo-500"
+  }
+];
+
+// Mapeamento de atributos para exibição
+const STAT_LABELS = {
+  lifetime: { label: "Vida Útil", suffix: "", lowerIsBetter: false },
+  cost: { label: "Custo", suffix: "", lowerIsBetter: false }, // Assumindo custo maior = material mais premium no jogo original
+  impact: { label: "Impacto Diário", suffix: "", lowerIsBetter: false },
+  resistance: { label: "Resistência", suffix: "", lowerIsBetter: false },
+  maxTemp: { label: "Temp. Máx.", suffix: " °C", lowerIsBetter: false },
+};
+
+export default function App() {
+  const [gameState, setGameState] = useState('start'); // start, playing, result, gameover
+  const [playerDeck, setPlayerDeck] = useState([]);
+  const [cpuDeck, setCpuDeck] = useState([]);
+  const [selectedStat, setSelectedStat] = useState(null);
+  const [roundWinner, setRoundWinner] = useState(null);
+  const [turn, setTurn] = useState('player'); // 'player' ou 'cpu'
+  const [tiedCards, setTiedCards] = useState([]); // Cartas acumuladas em caso de empate
+
+  const initializeGame = () => {
+    // Embaralha e divide as cartas
+    const shuffled = [...MASTER_DECK].sort(() => Math.random() - 0.5);
+    const half = Math.ceil(shuffled.length / 2);
+    setPlayerDeck(shuffled.slice(0, half));
+    setCpuDeck(shuffled.slice(half));
+    setGameState('playing');
+    setTurn('player');
+    setSelectedStat(null);
+    setRoundWinner(null);
+    setTiedCards([]);
+  };
+
+  const handleStatSelect = (statKey) => {
+    if (gameState !== 'playing' || turn !== 'player') return;
+    
+    setSelectedStat(statKey);
+    resolveRound(statKey);
+  };
+
+  const resolveRound = (statKey) => {
+    const playerCard = playerDeck[0];
+    const cpuCard = cpuDeck[0];
+    
+    const pValue = playerCard.stats[statKey];
+    const cValue = cpuCard.stats[statKey];
+    const isLowerBetter = STAT_LABELS[statKey].lowerIsBetter;
+
+    let winner = null;
+    if (pValue === cValue) {
+      winner = 'draw';
+    } else if (isLowerBetter) {
+      winner = pValue < cValue ? 'player' : 'cpu';
+    } else {
+      winner = pValue > cValue ? 'player' : 'cpu';
+    }
+
+    setRoundWinner(winner);
+    setGameState('result');
+  };
+
+  const nextRound = () => {
+    const pCard = playerDeck[0];
+    const cCard = cpuDeck[0];
+    
+    let newPlayerDeck = [...playerDeck.slice(1)];
+    let newCpuDeck = [...cpuDeck.slice(1)];
+    let newTiedCards = [...tiedCards];
+
+    if (roundWinner === 'player') {
+      newPlayerDeck = [...newPlayerDeck, pCard, cCard, ...newTiedCards];
+      newTiedCards = [];
+      setTurn('player');
+    } else if (roundWinner === 'cpu') {
+      newCpuDeck = [...newCpuDeck, cCard, pCard, ...newTiedCards];
+      newTiedCards = [];
+      setTurn('cpu');
+    } else { // draw
+      newTiedCards = [...newTiedCards, pCard, cCard];
+      // turn stays the same
+    }
+
+    setPlayerDeck(newPlayerDeck);
+    setCpuDeck(newCpuDeck);
+    setTiedCards(newTiedCards);
+    setSelectedStat(null);
+    setRoundWinner(null);
+
+    // Verifica fim de jogo
+    if (newPlayerDeck.length === 0 || newCpuDeck.length === 0) {
+      setGameState('gameover');
+    } else {
+      setGameState('playing');
+      
+      // Se for a vez da CPU, ela escolhe o melhor status da sua carta
+      if (roundWinner === 'cpu' || (roundWinner === 'draw' && turn === 'cpu')) {
+        setTimeout(() => {
+          cpuPlayRound(newCpuDeck[0]);
+        }, 1500); // pequeno delay para a CPU "pensar"
+      }
+    }
+  };
+
+  const cpuPlayRound = (card) => {
+    // Lógica simples de IA: escolhe o atributo com maior valor numérico relativo 
+    // (Apenas pega o maior número para simplificar, idealmente normalizaria)
+    let bestStat = 'maxTemp';
+    let maxValue = -1;
+    
+    Object.keys(card.stats).forEach(stat => {
+       if (card.stats[stat] > maxValue) {
+           maxValue = card.stats[stat];
+           bestStat = stat;
+       }
+    });
+
+    setSelectedStat(bestStat);
+    resolveRound(bestStat);
+  };
+
+  // --- COMPONENTES DE UI ---
+
+  const CardView = ({ card, isHidden, isActive, onSelectStat, selectedStat, isWinner }) => {
+    if (!card) return null;
+    const Icon = card.icon || AlertCircle;
+
+    if (isHidden) {
+      return (
+        <div className="w-64 h-[26rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
+           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
+           <Rocket size={64} className="text-blue-300 mb-4 opacity-80" />
+           <h3 className="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">Super<br/>Trunfo</h3>
+           <p className="text-blue-400 text-sm mt-2">Materiais</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`w-72 h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${isWinner === true ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105' : isWinner === false ? 'border-gray-500 opacity-80' : 'border-green-600 shadow-lg'} flex flex-col overflow-hidden transition-all duration-300`}>
+        {/* Imagem / Header da Carta */}
+        <div className="h-1/3 relative flex items-center justify-center p-2">
+            <div className={`absolute inset-0 ${card.color} opacity-90`}></div>
+            <div className="relative z-10 text-center">
+                <Icon size={48} className="mx-auto text-white mb-2 drop-shadow-md" />
+                <h2 className="font-bold text-white text-lg leading-tight drop-shadow-md">{card.title}</h2>
+                <p className="text-xs text-white/80 mt-1">{card.type}</p>
+            </div>
+        </div>
+
+        {/* Status Table (Azul como na imagem) */}
+        <div className="bg-[#4169E1] flex-1 flex flex-col">
+          {Object.entries(STAT_LABELS).map(([key, config]) => {
+            const isSelected = selectedStat === key;
+            return (
+              <div 
+                key={key}
+                onClick={() => isActive && onSelectStat(key)}
+                className={`flex justify-between items-center px-4 py-2 border-b border-blue-400/30 text-white cursor-pointer transition-colors
+                  ${isActive ? 'hover:bg-blue-500/50' : ''}
+                  ${isSelected ? 'bg-yellow-400 text-blue-900 font-bold shadow-inner' : ''}
+                `}
+              >
+                <span className="text-sm">{config.label}</span>
+                <span className="text-base font-semibold">{card.stats[key]}{config.suffix}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Descrição */}
+        <div className="h-1/4 bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify">
+            {card.description}
+        </div>
+      </div>
+    );
+  };
+
+  // --- TELAS ---
+
+  if (gameState === 'start') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4 font-sans">
+        <Rocket size={80} className="text-[#8DC63F] mb-6 animate-bounce" />
+        <h1 className="text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400 text-center">
+          Super Trunfo
+        </h1>
+        <h2 className="text-2xl font-semibold mb-8 text-blue-300">Engenharia de Materiais</h2>
+        <p className="max-w-md text-center text-slate-400 mb-8">
+          Descubra as propriedades incríveis das cerâmicas avançadas e materiais estruturais. Compare resistência, custo e temperatura para vencer!
+        </p>
+        <button 
+          onClick={initializeGame}
+          className="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-xl py-4 px-10 rounded-full shadow-[0_0_15px_rgba(141,198,63,0.5)] transition-all transform hover:scale-105"
+        >
+          Iniciar Jogo
+        </button>
+      </div>
+    );
+  }
+
+  if (gameState === 'gameover') {
+    const playerWon = playerDeck.length > 0;
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4 font-sans">
+        <Trophy size={100} className={`mb-6 ${playerWon ? 'text-yellow-400' : 'text-slate-500'}`} />
+        <h1 className="text-5xl font-black mb-4">
+          {playerWon ? 'Você Venceu!' : 'Fim de Jogo'}
+        </h1>
+        <p className="text-xl text-slate-400 mb-8">
+          {playerWon ? 'Você dominou a ciência dos materiais!' : 'A CPU superou seus conhecimentos estruturais.'}
+        </p>
+        <div className="flex gap-8 mb-12 text-2xl font-bold">
+            <span className="text-blue-400">Suas Cartas: {playerDeck.length}</span>
+            <span className="text-red-400">Cartas CPU: {cpuDeck.length}</span>
+        </div>
+        <button 
+          onClick={initializeGame}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-3 px-8 rounded-full transition-all"
+        >
+          <RefreshCw size={20} /> Jogar Novamente
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white p-4 flex flex-col font-sans">
+      {/* HEADER */}
+      <header className="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl shadow-lg border border-slate-700">
+        <div className="flex flex-col">
+            <span className="text-sm text-slate-400 uppercase tracking-wide">Jogador</span>
+            <span className="text-3xl font-bold text-blue-400">{playerDeck.length} <span className="text-lg text-slate-500">cartas</span></span>
+        </div>
+        
+        <div className="text-center">
+            <h1 className="text-2xl font-black text-[#8DC63F] tracking-widest uppercase">Trunfo Materiais</h1>
+            <div className="text-sm font-medium text-slate-400 mt-1">
+                {tiedCards.length > 0 && <span className="text-yellow-400 animate-pulse">Empate acumulado: {tiedCards.length} cartas!</span>}
+            </div>
+        </div>
+
+        <div className="flex flex-col text-right">
+            <span className="text-sm text-slate-400 uppercase tracking-wide">CPU</span>
+            <span className="text-3xl font-bold text-red-400">{cpuDeck.length} <span className="text-lg text-slate-500">cartas</span></span>
+        </div>
+      </header>
+
+      {/* ÁREA DE JOGO */}
+      <main className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+        
+        {/* CARTA DO JOGADOR */}
+        <div className="flex flex-col items-center">
+            <h3 className="mb-4 text-xl font-semibold text-blue-300">Sua Carta</h3>
+            <CardView 
+                card={playerDeck[0]} 
+                isHidden={false} 
+                isActive={gameState === 'playing' && turn === 'player'}
+                onSelectStat={handleStatSelect}
+                selectedStat={selectedStat}
+                isWinner={gameState === 'result' ? (roundWinner === 'player') : null}
+            />
+        </div>
+
+        {/* PAINEL CENTRAL (Ações e Status) */}
+        <div className="flex flex-col items-center justify-center min-w-[200px] text-center">
+            {gameState === 'playing' ? (
+                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl">
+                    <Activity size={48} className={`mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}`} />
+                    <h3 className="text-xl font-bold mb-2">
+                        {turn === 'player' ? 'Sua Vez!' : 'Vez da CPU...'}
+                    </h3>
+                    <p className="text-slate-400 text-sm">
+                        {turn === 'player' 
+                            ? 'Clique em um atributo da sua carta para desafiar.' 
+                            : 'A CPU está analisando os materiais...'}
+                    </p>
+                </div>
+            ) : (
+                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl flex flex-col items-center">
+                    <h3 className="text-2xl font-black mb-2 text-white">
+                        {roundWinner === 'player' ? 'Você Ganhou!' : roundWinner === 'cpu' ? 'CPU Ganhou!' : 'Empate!'}
+                    </h3>
+                    <p className="text-yellow-400 font-bold mb-6">
+                        {selectedStat && STAT_LABELS[selectedStat].label}
+                    </p>
+                    
+                    <button 
+                        onClick={nextRound}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+                    >
+                        Próxima Rodada
+                    </button>
+                </div>
+            )}
+        </div>
+
+        {/* CARTA DA CPU */}
+        <div className="flex flex-col items-center">
+            <h3 className="mb-4 text-xl font-semibold text-red-300">Carta da CPU</h3>
+            <CardView 
+                card={cpuDeck[0]} 
+                isHidden={gameState === 'playing'} 
+                isActive={false}
+                selectedStat={selectedStat}
+                isWinner={gameState === 'result' ? (roundWinner === 'cpu') : null}
+            />
+        </div>
+      </main>
+
+    </div>
+  );
+}
