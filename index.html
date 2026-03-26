@@ -1,407 +1,717 @@
-import React, { useState, useEffect } from 'react';
-import { Rocket, Activity, Shield, Flame, Zap, DollarSign, RefreshCw, Trophy, AlertCircle } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Trunfo: Engenharia de Materiais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .card-hidden-bg {
+            background-image: radial-gradient(circle at center, #ffffff 2px, transparent 2.5px);
+            background-size: 20px 20px;
+        }
+        .stat-row:hover { background-color: rgba(59, 130, 246, 0.5); }
+        .stat-selected { background-color: #facc15 !important; color: #1e3a8a !important; font-weight: 800; }
+        
+        /* Custom Scrollbar for descriptions */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-x-hidden selection:bg-blue-500 selection:text-white relative">
 
-// Dados extraídos das cartas da imagem + algumas cartas adicionais para compor o baralho
-const MASTER_DECK = [
-  {
-    id: 1,
-    title: "Aquecedor de Sauna de Cerâmica",
-    type: "Ceramic Infrared Sauna Heater",
-    stats: { lifetime: 20, cost: 11, impact: 50, resistance: 14, maxTemp: 400 },
-    description: "Aquecedores emitem calor infravermelho suave e consistente. Elementos cerâmicos garantem eficiência energética e durabilidade.",
-    icon: Flame,
-    color: "bg-orange-500"
-  },
-  {
-    id: 2,
-    title: "Isolador de Porcelana",
-    type: "Porcelain Insulator for Power Lines",
-    stats: { lifetime: 100, cost: 45, impact: 93, resistance: 82, maxTemp: 300 },
-    description: "Cerâmicas fornecem excelente isolamento elétrico, resistem a intempéries e suportam altas tensões, mantendo a integridade estrutural.",
-    icon: Zap,
-    color: "bg-yellow-500"
-  },
-  {
-    id: 3,
-    title: "Telescópio Espacial",
-    type: "Space Telescope",
-    stats: { lifetime: 24, cost: 83, impact: 3, resistance: 100, maxTemp: 2000 },
-    description: "Espelhos de carbeto de silício (SiC) oferecem alta rigidez, baixo peso e excelente estabilidade térmica em ambientes extremos.",
-    icon: Rocket,
-    color: "bg-blue-600"
-  },
-  {
-    id: 4,
-    title: "Coroa Dentária de Zircônia",
-    type: "Zirconia Dental Crown",
-    stats: { lifetime: 86, cost: 11, impact: 85, resistance: 78, maxTemp: 1000 },
-    description: "Com força excepcional, durabilidade e biocompatibilidade, cerâmicas são ideais para restaurações sem metal duradouras.",
-    icon: Activity,
-    color: "bg-teal-500"
-  },
-  {
-    id: 5,
-    title: "Revest. Forno de Indução",
-    type: "Induction Furnace Lining",
-    stats: { lifetime: 52, cost: 50, impact: 32, resistance: 90, maxTemp: 2800 },
-    description: "Revestimento para forno elétrico que derrete metais via indução eletromagnética, oferecendo fusão eficiente e controlada.",
-    icon: Flame,
-    color: "bg-red-600"
-  },
-  {
-    id: 6,
-    title: "Plataforma de Lançamento",
-    type: "Launch pad",
-    stats: { lifetime: 24, cost: 83, impact: 4, resistance: 34, maxTemp: 3300 },
-    description: "Cerâmicas refratárias revestem defletores de chama, protegendo estruturas contra calor extremo, exaustão e corrosão de foguetes.",
-    icon: Rocket,
-    color: "bg-slate-700"
-  },
-  {
-    id: 7,
-    title: "Refratário para Parede de Forno",
-    type: "Kiln Wall Refractory",
-    stats: { lifetime: 80, cost: 50, impact: 60, resistance: 93, maxTemp: 1800 },
-    description: "Tijolos refratários vitais para o isolamento térmico na indústria siderúrgica e de produção de vidro.",
-    icon: Shield,
-    color: "bg-stone-600"
-  },
-  {
-    id: 8,
-    title: "Pastilha de Freio de Carbono",
-    type: "Carbon-Ceramic Brake Pad",
-    stats: { lifetime: 45, cost: 70, impact: 20, resistance: 95, maxTemp: 1500 },
-    description: "Usadas em veículos de alta performance, mantêm a capacidade de frenagem em temperaturas extremas sem deformar.",
-    icon: Activity,
-    color: "bg-zinc-800"
-  },
-  {
-    id: 9,
-    title: "Colete Balístico de Alumina",
-    type: "Alumina Armor Plate",
-    stats: { lifetime: 95, cost: 40, impact: 10, resistance: 98, maxTemp: 1200 },
-    description: "Placas cerâmicas que dissipam a energia cinética de projéteis através do estilhaçamento controlado, protegendo vidas.",
-    icon: Shield,
-    color: "bg-emerald-700"
-  },
-  {
-    id: 10,
-    title: "Substrato Eletrônico",
-    type: "AlN Electronic Substrate",
-    stats: { lifetime: 90, cost: 65, impact: 70, resistance: 60, maxTemp: 800 },
-    description: "Nitretos de Alumínio conduzem calor mas não eletricidade, fundamentais para resfriar microprocessadores modernos.",
-    icon: Zap,
-    color: "bg-indigo-500"
-  }
-];
+    <!-- Particle Canvas -->
+    <canvas id="particles" class="fixed inset-0 pointer-events-none z-0 opacity-30"></canvas>
 
-// Mapeamento de atributos para exibição
-const STAT_LABELS = {
-  lifetime: { label: "Vida Útil", suffix: "", lowerIsBetter: false },
-  cost: { label: "Custo", suffix: "", lowerIsBetter: false }, // Assumindo custo maior = material mais premium no jogo original
-  impact: { label: "Impacto Diário", suffix: "", lowerIsBetter: false },
-  resistance: { label: "Resistência", suffix: "", lowerIsBetter: false },
-  maxTemp: { label: "Temp. Máx.", suffix: " °C", lowerIsBetter: false },
+    <!-- Audio Elements -->
+    <audio id="bg-music" loop src="https://actions.google.com/sounds/v1/science_fiction/science_fiction_ambience.ogg" preload="auto"></audio>
+    <audio id="sfx-win" src="https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg" preload="auto"></audio>
+    <audio id="sfx-lose" src="https://actions.google.com/sounds/v1/cartoon/cartoon_fail_string_bend.ogg" preload="auto"></audio>
+    <audio id="sfx-draw" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+    <audio id="sfx-click" src="https://actions.google.com/sounds/v1/ui/button_click.ogg" preload="auto"></audio>
+
+    <!-- Top Controls -->
+    <div class="absolute top-4 right-4 z-50 flex gap-3 items-center">
+        <button onclick="toggleInfo()" class="p-2 rounded-full bg-slate-800 text-[#8DC63F] hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Informações">
+            <i data-lucide="info" class="w-5 h-5"></i>
+        </button>
+        <button onclick="toggleMusic()" id="btn-music" class="p-2 rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Música">
+            <i data-lucide="volume-x" id="icon-music" class="w-5 h-5"></i>
+        </button>
+        <div class="flex gap-1 bg-slate-800 p-1 rounded-full border border-slate-600 shadow-lg">
+            <button onclick="toggleLang('pt')" id="btn-pt" class="px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity">PT</button>
+            <button onclick="toggleLang('en')" id="btn-en" class="px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700">EN</button>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-800 border border-[#8DC63F] rounded-2xl p-6 md:p-8 max-w-3xl w-full text-white shadow-2xl relative transform scale-95 transition-transform duration-300" id="info-modal-content">
+            <button onclick="toggleInfo()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700/50 rounded-full p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h2 id="modal-title" class="text-3xl font-black text-[#8DC63F] mb-6 flex items-center gap-2"><i data-lucide="graduation-cap"></i> <span id="text-info-title">Sobre o Jogo</span></h2>
+            
+            <div class="space-y-6 text-sm md:text-base text-slate-300 max-h-[70vh] overflow-y-auto pr-2">
+                <div>
+                    <h3 class="text-white font-bold text-xl mb-2 flex items-center gap-2 text-blue-400"><i data-lucide="gamepad-2"></i> <span id="text-rules-title">Como Funciona</span></h3>
+                    <p id="text-rules-desc" class="leading-relaxed"></p>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-xl mb-2 flex items-center gap-2 text-emerald-400"><i data-lucide="book-open"></i> <span id="text-pedagogy-title">Objetivo Pedagógico</span></h3>
+                    <p id="text-pedagogy-desc" class="leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Credits -->
+    <footer class="fixed bottom-3 right-5 z-40 flex flex-col items-end opacity-70 hover:opacity-100 transition-opacity pointer-events-none">
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Desenvolvido para</span>
+        <span class="text-sm font-black text-[#8DC63F] tracking-wider drop-shadow-md">DEMa - UFSCar</span>
+    </footer>
+
+    <!-- App Container -->
+    <div id="app" class="flex-1 flex flex-col p-4 w-full max-w-7xl mx-auto relative z-10"></div>
+
+<script>
+// --- DICTIONARY & TRANSLATIONS ---
+const i18n = {
+    pt: {
+        title: "Super Trunfo", subtitle: "Engenharia de Materiais",
+        desc: "Descubra as propriedades dos materiais! O jogo sorteia 10 cartas aleatórias do baralho de 50. Compare resistência, custo e temperatura para vencer!",
+        start: "Iniciar Partida", rematch: "Jogar Novamente",
+        player: "Jogador", cpu: "CPU", cards: "cartas", drawAccum: "Empate acumulado",
+        yourCard: "Sua Carta", cpuCard: "Carta da CPU",
+        yourTurn: "Sua Vez!", cpuTurn: "Vez da CPU...",
+        clickStat: "Clique em um atributo da sua carta para desafiar.",
+        cpuThinking: "A CPU está analisando os materiais...",
+        youWonRound: "Você Ganhou a Rodada!", cpuWonRound: "A CPU Ganhou a Rodada!", roundDraw: "Empate!",
+        nextRound: "Próxima Rodada",
+        gameOver: "Fim de Jogo", youWonGame: "Você Venceu o Jogo!", cpuWonGame: "A CPU Venceu!",
+        winDesc: "Você dominou a ciência dos materiais!", loseDesc: "A CPU superou seus conhecimentos estruturais.",
+        stats: {
+            lifetime: "Vida Útil", cost: "Custo", impact: "Impacto Diário", resistance: "Resistência", maxTemp: "Temp. Máx."
+        },
+        infoTitle: "Sobre o Jogo", rulesTitle: "Como Funciona", pedagogyTitle: "Objetivo Pedagógico",
+        rulesDesc: "O jogo distribui 5 cartas para você e 5 para a CPU. Na sua vez, escolha o melhor atributo da sua carta do topo para tentar superar a carta da CPU (lembre-se: para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas. O jogo termina quando um dos jogadores ficar com todas as cartas.",
+        pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais, este jogo visa construir uma intuição rápida sobre as propriedades de diferentes classes de materiais (Cerâmicas, Metais, Polímeros e Compósitos). Ao comparar atributos, o aluno internaliza a correlação entre estrutura, propriedades e aplicação real — como o fato de cerâmicas suportarem temperaturas extremas (refratários), ou polímeros terem menor custo e menor resistência."
+    },
+    en: {
+        title: "Top Trumps", subtitle: "Materials Engineering",
+        desc: "Discover material properties! The game draws 10 random cards from a deck of 50. Compare resistance, cost, and temperature to win!",
+        start: "Start Match", rematch: "Play Again",
+        player: "Player", cpu: "CPU", cards: "cards", drawAccum: "Accumulated draw",
+        yourCard: "Your Card", cpuCard: "CPU's Card",
+        yourTurn: "Your Turn!", cpuTurn: "CPU's Turn...",
+        clickStat: "Click an attribute on your card to challenge.",
+        cpuThinking: "The CPU is analyzing the materials...",
+        youWonRound: "You Won the Round!", cpuWonRound: "CPU Won the Round!", roundDraw: "Draw!",
+        nextRound: "Next Round",
+        gameOver: "Game Over", youWonGame: "You Won the Game!", cpuWonGame: "The CPU Won!",
+        winDesc: "You have mastered materials science!", loseDesc: "The CPU outsmarted your structural knowledge.",
+        stats: {
+            lifetime: "Lifetime", cost: "Cost", impact: "Daily Impact", resistance: "Resistance", maxTemp: "Max Temp."
+        },
+        infoTitle: "About the Game", rulesTitle: "How it Works", pedagogyTitle: "Pedagogical Objective",
+        rulesDesc: "The game deals 5 cards to you and 5 to the CPU. On your turn, choose the best attribute of your top card to beat the CPU's card (remember: for 'Cost', the lowest value wins!). The winner of the round takes both cards. The game ends when one player collects all the cards.",
+        pedagogyDesc: "Developed for Materials Engineering students, this game aims to build quick intuition about the properties of different material classes (Ceramics, Metals, Polymers, and Composites). By comparing attributes, students internalize the correlation between structure, properties and real-world application — such as ceramics withstanding extreme temperatures (refractories), or polymers having lower cost and lower resistance."
+    }
 };
 
-export default function App() {
-  const [gameState, setGameState] = useState('start'); // start, playing, result, gameover
-  const [playerDeck, setPlayerDeck] = useState([]);
-  const [cpuDeck, setCpuDeck] = useState([]);
-  const [selectedStat, setSelectedStat] = useState(null);
-  const [roundWinner, setRoundWinner] = useState(null);
-  const [turn, setTurn] = useState('player'); // 'player' ou 'cpu'
-  const [tiedCards, setTiedCards] = useState([]); // Cartas acumuladas em caso de empate
+let currentLang = 'pt';
+const t = (key, nestedKey) => nestedKey ? i18n[currentLang][key][nestedKey] : i18n[currentLang][key];
 
-  const initializeGame = () => {
-    // Embaralha e divide as cartas
-    const shuffled = [...MASTER_DECK].sort(() => Math.random() - 0.5);
-    const half = Math.ceil(shuffled.length / 2);
-    setPlayerDeck(shuffled.slice(0, half));
-    setCpuDeck(shuffled.slice(half));
-    setGameState('playing');
-    setTurn('player');
-    setSelectedStat(null);
-    setRoundWinner(null);
-    setTiedCards([]);
-  };
+// --- 50 CARDS MASTER DECK ---
+const MASTER_DECK = [
+    // 1-10: Originais / Cerâmicas
+    { id: 1, icon: "flame", color: "bg-orange-500", stats: { lifetime: 20, cost: 11, impact: 50, resistance: 14, maxTemp: 400 },
+      title: { pt: "Aquecedor de Sauna de Cerâmica", en: "Ceramic Sauna Heater" }, type: { pt: "Cerâmica Avançada", en: "Advanced Ceramic" },
+      desc: { pt: "Elementos cerâmicos garantem eficiência energética e durabilidade ao emitir calor.", en: "Ceramic elements ensure energy efficiency and durability by emitting heat." } },
+    { id: 2, icon: "zap", color: "bg-yellow-500", stats: { lifetime: 100, cost: 45, impact: 93, resistance: 82, maxTemp: 300 },
+      title: { pt: "Isolador de Porcelana", en: "Porcelain Insulator" }, type: { pt: "Cerâmica Estrutural", en: "Structural Ceramic" },
+      desc: { pt: "Isolamento elétrico resistente a intempéries que suporta altas tensões nas linhas de energia.", en: "Weather-resistant electrical insulation that withstands high voltages on power lines." } },
+    { id: 3, icon: "rocket", color: "bg-blue-600", stats: { lifetime: 24, cost: 83, impact: 3, resistance: 100, maxTemp: 2000 },
+      title: { pt: "Espelho Espacial (SiC)", en: "Space Mirror (SiC)" }, type: { pt: "Cerâmica Especial", en: "Specialty Ceramic" },
+      desc: { pt: "Espelhos de carbeto de silício oferecem alta rigidez e estabilidade térmica extrema.", en: "Silicon carbide mirrors offer high stiffness and extreme thermal stability." } },
+    { id: 4, icon: "activity", color: "bg-teal-500", stats: { lifetime: 86, cost: 11, impact: 85, resistance: 78, maxTemp: 1000 },
+      title: { pt: "Coroa Dentária de Zircônia", en: "Zirconia Dental Crown" }, type: { pt: "Biocerâmica", en: "Bioceramic" },
+      desc: { pt: "Durabilidade e biocompatibilidade para restaurações sem metal que resistem à mastigação.", en: "Durability and biocompatibility for metal-free restorations that withstand chewing." } },
+    { id: 5, icon: "flame", color: "bg-red-600", stats: { lifetime: 52, cost: 50, impact: 32, resistance: 90, maxTemp: 2800 },
+      title: { pt: "Forno de Indução", en: "Induction Furnace" }, type: { pt: "Refratário", en: "Refractory" },
+      desc: { pt: "Revestimento refratário para fornos que derretem metais via indução eletromagnética.", en: "Refractory lining for furnaces that melt metals via electromagnetic induction." } },
+    { id: 6, icon: "rocket", color: "bg-slate-700", stats: { lifetime: 24, cost: 83, impact: 4, resistance: 34, maxTemp: 3300 },
+      title: { pt: "Plataforma de Lançamento", en: "Launch Pad" }, type: { pt: "Refratário Avançado", en: "Advanced Refractory" },
+      desc: { pt: "Cerâmicas refratárias que protegem estruturas contra o calor extremo e exaustão de foguetes.", en: "Refractory ceramics that protect structures against extreme rocket exhaust heat." } },
+    { id: 7, icon: "shield", color: "bg-stone-600", stats: { lifetime: 80, cost: 50, impact: 60, resistance: 93, maxTemp: 1800 },
+      title: { pt: "Tijolo de Parede de Forno", en: "Kiln Wall Brick" }, type: { pt: "Refratário", en: "Refractory" },
+      desc: { pt: "Isolamento térmico vital na indústria siderúrgica e de produção de vidro.", en: "Vital thermal insulation in the steel and glass production industries." } },
+    { id: 8, icon: "circle", color: "bg-zinc-800", stats: { lifetime: 45, cost: 70, impact: 20, resistance: 95, maxTemp: 1500 },
+      title: { pt: "Freio de Carbono-Cerâmica", en: "Carbon-Ceramic Brake" }, type: { pt: "Compósito", en: "Composite" },
+      desc: { pt: "Usadas em veículos de alta performance para manter a frenagem em temperaturas extremas.", en: "Used in high-performance vehicles to maintain braking at extreme temperatures." } },
+    { id: 9, icon: "shield-alert", color: "bg-emerald-700", stats: { lifetime: 95, cost: 40, impact: 10, resistance: 98, maxTemp: 1200 },
+      title: { pt: "Colete de Alumina", en: "Alumina Armor" }, type: { pt: "Cerâmica Balística", en: "Ballistic Ceramic" },
+      desc: { pt: "Placas que dissipam a energia cinética de projéteis através de estilhaçamento controlado.", en: "Plates that dissipate kinetic energy of projectiles through controlled shattering." } },
+    { id: 10, icon: "cpu", color: "bg-indigo-500", stats: { lifetime: 90, cost: 65, impact: 70, resistance: 60, maxTemp: 800 },
+      title: { pt: "Substrato Eletrônico (AlN)", en: "Electronic Substrate (AlN)" }, type: { pt: "Cerâmica Eletrônica", en: "Electronic Ceramic" },
+      desc: { pt: "Conduzem calor mas não eletricidade, fundamentais para resfriar microprocessadores.", en: "Conduct heat but not electricity, crucial for cooling microprocessors." } },
 
-  const handleStatSelect = (statKey) => {
+    // 11-20: Metais & Ligas
+    { id: 11, icon: "settings", color: "bg-gray-400", stats: { lifetime: 98, cost: 60, impact: 80, resistance: 88, maxTemp: 1668 },
+      title: { pt: "Implante de Titânio", en: "Titanium Implant" }, type: { pt: "Liga Metálica", en: "Metal Alloy" },
+      desc: { pt: "Liga Ti-6Al-4V amplamente usada em ortopedia pela sua alta relação força-peso e biocompatibilidade.", en: "Ti-6Al-4V alloy widely used in orthopedics for its high strength-to-weight ratio." } },
+    { id: 12, icon: "wind", color: "bg-sky-700", stats: { lifetime: 75, cost: 90, impact: 15, resistance: 92, maxTemp: 1350 },
+      title: { pt: "Lâmina de Turbina (Inconel)", en: "Turbine Blade (Inconel)" }, type: { pt: "Superliga", en: "Superalloy" },
+      desc: { pt: "Superliga à base de níquel projetada para operar em condições extremas de calor e pressão.", en: "Nickel-based superalloy designed to operate in extreme heat and pressure conditions." } },
+    { id: 13, icon: "car", color: "bg-zinc-500", stats: { lifetime: 60, cost: 30, impact: 90, resistance: 70, maxTemp: 1500 },
+      title: { pt: "Chassi de Aço (DP)", en: "Steel Chassis (DP)" }, type: { pt: "Aço Avançado", en: "Advanced Steel" },
+      desc: { pt: "Aço Dual Phase que absorve energia em batidas automobilísticas mantendo a integridade.", en: "Dual Phase steel that absorbs energy in car crashes while maintaining integrity." } },
+    { id: 14, icon: "plane", color: "bg-slate-400", stats: { lifetime: 40, cost: 85, impact: 25, resistance: 85, maxTemp: 660 },
+      title: { pt: "Fuselagem Alumínio-Lítio", en: "Al-Li Fuselage" }, type: { pt: "Liga Leve", en: "Light Alloy" },
+      desc: { pt: "Reduz o peso de aeronaves comerciais, economizando combustível sem sacrificar força.", en: "Reduces weight of commercial aircraft, saving fuel without sacrificing strength." } },
+    { id: 15, icon: "magnet", color: "bg-slate-800", stats: { lifetime: 85, cost: 75, impact: 50, resistance: 80, maxTemp: 310 },
+      title: { pt: "Ímã de Neodímio", en: "Neodymium Magnet" }, type: { pt: "Metal de Terra Rara", en: "Rare-Earth Metal" },
+      desc: { pt: "Ímãs permanentes NdFeB essenciais para motores de carros elétricos e fones de ouvido.", en: "NdFeB permanent magnets essential for EV motors and headphones." } },
+    { id: 16, icon: "droplets", color: "bg-amber-600", stats: { lifetime: 100, cost: 95, impact: 98, resistance: 65, maxTemp: 1064 },
+      title: { pt: "Contatos de Ouro", en: "Gold Contacts" }, type: { pt: "Metal Precioso", en: "Precious Metal" },
+      desc: { pt: "Usado em conectores críticos por sua resistência excepcional à oxidação e corrosão.", en: "Used in critical connectors for its exceptional resistance to oxidation and corrosion." } },
+    { id: 17, icon: "zap", color: "bg-orange-600", stats: { lifetime: 70, cost: 20, impact: 100, resistance: 40, maxTemp: 1085 },
+      title: { pt: "Fiação de Cobre", en: "Copper Wiring" }, type: { pt: "Metal Condutor", en: "Conductive Metal" },
+      desc: { pt: "A espinha dorsal da eletrônica moderna e distribuição de energia devido à alta condutividade.", en: "The backbone of modern electronics and power distribution due to high conductivity." } },
+    { id: 18, icon: "hammer", color: "bg-gray-600", stats: { lifetime: 99, cost: 88, impact: 5, resistance: 99, maxTemp: 3422 },
+      title: { pt: "Penetrador de Tungstênio", en: "Tungsten Penetrator" }, type: { pt: "Metal Refratário", en: "Refractory Metal" },
+      desc: { pt: "Metal de altíssima densidade e ponto de fusão, usado em perfuração e contrapesos.", en: "Extremely dense metal with high melting point, used in drilling and counterweights." } },
+    { id: 19, icon: "activity", color: "bg-pink-600", stats: { lifetime: 80, cost: 70, impact: 40, resistance: 75, maxTemp: 1300 },
+      title: { pt: "Stent de Nitinol", en: "Nitinol Stent" }, type: { pt: "Liga de Memória de Forma", en: "Shape Memory Alloy" },
+      desc: { pt: "Liga Níquel-Titânio que recupera sua forma com o calor do corpo para desobstruir artérias.", en: "Ni-Ti alloy that recovers its shape with body heat to clear clogged arteries." } },
+    { id: 20, icon: "cpu", color: "bg-purple-600", stats: { lifetime: 50, cost: 55, impact: 60, resistance: 50, maxTemp: 300 },
+      title: { pt: "Solda Sem Chumbo", en: "Lead-Free Solder" }, type: { pt: "Liga de Estanho", en: "Tin Alloy" },
+      desc: { pt: "Substituto ecológico para soldas eletrônicas tradicionais, baseadas em Estanho-Prata-Cobre.", en: "Eco-friendly substitute for traditional electronic solders, based on Sn-Ag-Cu." } },
+
+    // 21-30: Polímeros & Borrachas
+    { id: 21, icon: "shield", color: "bg-yellow-600", stats: { lifetime: 60, cost: 35, impact: 85, resistance: 88, maxTemp: 160 },
+      title: { pt: "Colete de Kevlar", en: "Kevlar Vest" }, type: { pt: "Polímero de Aramida", en: "Aramid Polymer" },
+      desc: { pt: "Fibras sintéticas incrivelmente fortes tecidas para parar balas e cortes.", en: "Incredibly strong synthetic fibers woven to stop bullets and cuts." } },
+    { id: 22, icon: "package", color: "bg-cyan-500", stats: { lifetime: 10, cost: 5, impact: 100, resistance: 10, maxTemp: 260 },
+      title: { pt: "Garrafa PET", en: "PET Bottle" }, type: { pt: "Termoplástico", en: "Thermoplastic" },
+      desc: { pt: "Polietileno tereftalato, onipresente em embalagens por ser leve, transparente e reciclável.", en: "Ubiquitous in packaging for being lightweight, transparent, and recyclable." } },
+    { id: 23, icon: "settings", color: "bg-slate-600", stats: { lifetime: 40, cost: 25, impact: 70, resistance: 60, maxTemp: 260 },
+      title: { pt: "Revestimento de Teflon", en: "Teflon Coating" }, type: { pt: "Fluoropolímero", en: "Fluoropolymer" },
+      desc: { pt: "PTFE oferece o menor coeficiente de fricção, usado em panelas e cabos aeroespaciais.", en: "PTFE offers the lowest friction coefficient, used in pans and aerospace cables." } },
+    { id: 24, icon: "disc", color: "bg-zinc-700", stats: { lifetime: 30, cost: 15, impact: 95, resistance: 55, maxTemp: 150 },
+      title: { pt: "Pneu Vulcanizado", en: "Vulcanized Tire" }, type: { pt: "Elastômero", en: "Elastomer" },
+      desc: { pt: "Borracha tratada com enxofre para resistir ao desgaste contínuo de veículos na estrada.", en: "Sulfur-treated rubber to resist continuous wear from vehicles on the road." } },
+    { id: 25, icon: "activity", color: "bg-indigo-400", stats: { lifetime: 85, cost: 55, impact: 20, resistance: 75, maxTemp: 135 },
+      title: { pt: "Prótese Articular (UHMWPE)", en: "Joint Prosthesis (UHMWPE)" }, type: { pt: "Polímero Biomédico", en: "Biomedical Polymer" },
+      desc: { pt: "Polietileno de ultra alto peso molecular usado como 'cartilagem' em próteses de joelho.", en: "Ultra-high molecular weight polyethylene used as 'cartilage' in knee prostheses." } },
+    { id: 26, icon: "eye", color: "bg-blue-400", stats: { lifetime: 75, cost: 40, impact: 80, resistance: 65, maxTemp: 150 },
+      title: { pt: "Lente de Policarbonato", en: "Polycarbonate Lens" }, type: { pt: "Termoplástico", en: "Thermoplastic" },
+      desc: { pt: "Resistência extrema a impactos e alta transparência óptica para óculos e escudos.", en: "Extreme impact resistance and high optical transparency for glasses and shields." } },
+    { id: 27, icon: "zap", color: "bg-red-400", stats: { lifetime: 20, cost: 45, impact: 5, resistance: 45, maxTemp: 200 },
+      title: { pt: "Fio Condutor (PEDOT)", en: "Conductive Wire (PEDOT)" }, type: { pt: "Polímero Condutor", en: "Conducting Polymer" },
+      desc: { pt: "Plásticos que conduzem eletricidade, abrindo portas para telas flexíveis e biossensores.", en: "Plastics that conduct electricity, opening doors for flexible screens and biosensors." } },
+    { id: 28, icon: "droplet", color: "bg-green-600", stats: { lifetime: 5, cost: 10, impact: 30, resistance: 15, maxTemp: 170 },
+      title: { pt: "Sutura Absorvível (PLA)", en: "Absorbable Suture (PLA)" }, type: { pt: "Biopolímero", en: "Biopolymer" },
+      desc: { pt: "Ácido polilático que dissolve no corpo com o tempo, eliminando a remoção de pontos.", en: "Polylactic acid that dissolves in the body over time, eliminating stitch removal." } },
+    { id: 29, icon: "box", color: "bg-orange-400", stats: { lifetime: 35, cost: 20, impact: 88, resistance: 30, maxTemp: 90 },
+      title: { pt: "Espuma de Poliuretano", en: "Polyurethane Foam" }, type: { pt: "Polímero Celular", en: "Cellular Polymer" },
+      desc: { pt: "Isolante térmico e acústico usado em geladeiras, colchões e assentos de carros.", en: "Thermal and acoustic insulation used in fridges, mattresses, and car seats." } },
+    { id: 30, icon: "waves", color: "bg-slate-800", stats: { lifetime: 25, cost: 30, impact: 40, resistance: 35, maxTemp: 100 },
+      title: { pt: "Traje de Neoprene", en: "Neoprene Wetsuit" }, type: { pt: "Borracha Sintética", en: "Synthetic Rubber" },
+      desc: { pt: "Borracha com microbolhas de nitrogênio que mantém mergulhadores aquecidos.", en: "Rubber with nitrogen microbubbles that keeps divers warm." } },
+
+    // 31-40: Compósitos & Vidros
+    { id: 31, icon: "wind", color: "bg-black", stats: { lifetime: 55, cost: 80, impact: 35, resistance: 90, maxTemp: 350 },
+      title: { pt: "Chassi de Fibra de Carbono", en: "Carbon Fiber Chassis" }, type: { pt: "Compósito Polimérico", en: "Polymer Composite" },
+      desc: { pt: "Fibras de carbono em matriz de epóxi oferecem resistência de aço com fração do peso.", en: "Carbon fibers in an epoxy matrix offer steel strength at a fraction of the weight." } },
+    { id: 32, icon: "shield", color: "bg-teal-700", stats: { lifetime: 65, cost: 40, impact: 60, resistance: 70, maxTemp: 300 },
+      title: { pt: "Pá Eólica (Fibra de Vidro)", en: "Wind Blade (Fiberglass)" }, type: { pt: "Compósito (GFRP)", en: "Composite (GFRP)" },
+      desc: { pt: "Leve e forte, resiste a forças aerodinâmicas constantes em turbinas eólicas.", en: "Light and strong, resists constant aerodynamic forces in wind turbines." } },
+    { id: 33, icon: "cpu", color: "bg-green-700", stats: { lifetime: 45, cost: 25, impact: 90, resistance: 65, maxTemp: 140 },
+      title: { pt: "Placa-Mãe (FR-4)", en: "Motherboard (FR-4)" }, type: { pt: "Compósito de Vidro/Epóxi", en: "Glass/Epoxy Composite" },
+      desc: { pt: "Isolante resistente ao fogo usado como base para quase todos os circuitos impressos.", en: "Fire-resistant insulator used as the base for almost all printed circuit boards." } },
+    { id: 34, icon: "smartphone", color: "bg-sky-500", stats: { lifetime: 20, cost: 35, impact: 100, resistance: 60, maxTemp: 600 },
+      title: { pt: "Tela Gorilla Glass", en: "Gorilla Glass Screen" }, type: { pt: "Vidro Aluminossilicato", en: "Aluminosilicate Glass" },
+      desc: { pt: "Vidro quimicamente fortalecido via troca iônica para resistir a arranhões em celulares.", en: "Chemically strengthened glass via ion exchange to resist scratches on phones." } },
+    { id: 35, icon: "wifi", color: "bg-blue-500", stats: { lifetime: 80, cost: 60, impact: 75, resistance: 40, maxTemp: 1600 },
+      title: { pt: "Fibra Óptica (Sílica)", en: "Optical Fiber (Silica)" }, type: { pt: "Vidro Ultra-Puro", en: "Ultra-Pure Glass" },
+      desc: { pt: "Vidro de pureza extrema que transmite pulsos de luz conectando a internet global.", en: "Glass of extreme purity that transmits light pulses connecting the global internet." } },
+    { id: 36, icon: "shield", color: "bg-stone-500", stats: { lifetime: 100, cost: 15, impact: 90, resistance: 85, maxTemp: 1000 },
+      title: { pt: "Concreto Armado", en: "Reinforced Concrete" }, type: { pt: "Compósito Macro", en: "Macro Composite" },
+      desc: { pt: "A união do concreto (resistência à compressão) com o aço (resistência à tração).", en: "The union of concrete (compressive strength) with steel (tensile strength)." } },
+    { id: 37, icon: "activity", color: "bg-rose-500", stats: { lifetime: 70, cost: 50, impact: 15, resistance: 75, maxTemp: 1200 },
+      title: { pt: "Enxerto Ósseo (Biovidro)", en: "Bone Graft (Bioglass)" }, type: { pt: "Vidro Bioativo", en: "Bioactive Glass" },
+      desc: { pt: "Vidro especial que reage quimicamente formando ligações fortes com o tecido ósseo vivo.", en: "Special glass that chemically reacts forming strong bonds with living bone tissue." } },
+    { id: 38, icon: "sun", color: "bg-indigo-600", stats: { lifetime: 15, cost: 45, impact: 20, resistance: 30, maxTemp: 250 },
+      title: { pt: "Célula Solar (Perovskita)", en: "Solar Cell (Perovskite)" }, type: { pt: "Material Fotovoltaico", en: "Photovoltaic Material" },
+      desc: { pt: "Nova classe de materiais altamente eficientes na conversão de luz solar em eletricidade.", en: "New class of highly efficient materials for converting sunlight into electricity." } },
+    { id: 39, icon: "shield-check", color: "bg-slate-500", stats: { lifetime: 60, cost: 25, impact: 50, resistance: 55, maxTemp: 400 },
+      title: { pt: "Vidro Temperado", en: "Tempered Glass" }, type: { pt: "Vidro de Segurança", en: "Safety Glass" },
+      desc: { pt: "Tratamento térmico cria tensões internas que o tornam 4x mais forte que vidro comum.", en: "Thermal treatment creates internal stresses making it 4x stronger than normal glass." } },
+    { id: 40, icon: "monitor-play", color: "bg-fuchsia-600", stats: { lifetime: 25, cost: 70, impact: 65, resistance: 35, maxTemp: 1500 },
+      title: { pt: "Tela Condutora (ITO)", en: "Conductive Screen (ITO)" }, type: { pt: "Óxido Condutor Transparente", en: "Transparent Conductive Oxide" },
+      desc: { pt: "Óxido de Índio-Estanho que permite tocar na tela enquanto deixa a luz passar.", en: "Indium Tin Oxide that allows touching the screen while letting light pass." } },
+
+    // 41-50: Semicondutores, Nanomateriais e Avançados
+    { id: 41, icon: "cpu", color: "bg-gray-800", stats: { lifetime: 65, cost: 75, impact: 100, resistance: 50, maxTemp: 1414 },
+      title: { pt: "Wafer de Silício", en: "Silicon Wafer" }, type: { pt: "Semicondutor", en: "Semiconductor" },
+      desc: { pt: "Cristal ultra-puro dopado que forma os transistores do cérebro de todo computador.", en: "Ultra-pure doped crystal that forms the transistors of every computer's brain." } },
+    { id: 42, icon: "zap", color: "bg-amber-500", stats: { lifetime: 85, cost: 80, impact: 40, resistance: 60, maxTemp: 1238 },
+      title: { pt: "LED de Arsenieto de Gálio", en: "GaAs LED" }, type: { pt: "Semicondutor Composto", en: "Compound Semiconductor" },
+      desc: { pt: "Semicondutor de emissão direta de luz, fundamental em LEDs vermelhos e lasers.", en: "Direct bandgap semiconductor, fundamental in red LEDs and lasers." } },
+    { id: 43, icon: "battery", color: "bg-blue-700", stats: { lifetime: 15, cost: 65, impact: 95, resistance: 40, maxTemp: 150 },
+      title: { pt: "Bateria Li-Ion (LCO)", en: "Li-Ion Battery (LCO)" }, type: { pt: "Material de Armazenamento", en: "Storage Material" },
+      desc: { pt: "Cátodo de Óxido de Lítio-Cobalto, chave para a revolução dos smartphones.", en: "Lithium Cobalt Oxide cathode, key to the smartphone revolution." } },
+    { id: 44, icon: "wind", color: "bg-cyan-600", stats: { lifetime: 90, cost: 85, impact: 10, resistance: 20, maxTemp: 1200 },
+      title: { pt: "Aerogel de Sílica", en: "Silica Aerogel" }, type: { pt: "Nanomaterial", en: "Nanomaterial" },
+      desc: { pt: "O sólido mais leve do mundo, é 99% ar e o melhor isolante térmico conhecido.", en: "The lightest solid in the world, 99% air and the best known thermal insulator." } },
+    { id: 45, icon: "layers", color: "bg-zinc-900", stats: { lifetime: 75, cost: 95, impact: 5, resistance: 98, maxTemp: 3500 },
+      title: { pt: "Folha de Grafeno", en: "Graphene Sheet" }, type: { pt: "Nanomaterial de Carbono", en: "Carbon Nanomaterial" },
+      desc: { pt: "Camada atômica única de carbono com condutividade e força incomparáveis.", en: "Single atomic layer of carbon with unmatched conductivity and strength." } },
+    { id: 46, icon: "sun", color: "bg-green-500", stats: { lifetime: 50, cost: 90, impact: 10, resistance: 80, maxTemp: 2800 },
+      title: { pt: "Pastilha de Urânio (UO2)", en: "Uranium Pellet (UO2)" }, type: { pt: "Combustível Nuclear", en: "Nuclear Fuel" },
+      desc: { pt: "Cerâmica de dióxido de urânio que suporta fissão para gerar energia limpa massiva.", en: "Uranium dioxide ceramic that withstands fission to generate massive clean energy." } },
+    { id: 47, icon: "shield", color: "bg-slate-400", stats: { lifetime: 45, cost: 60, impact: 10, resistance: 85, maxTemp: 1850 },
+      title: { pt: "Revestimento Zircaloy", en: "Zircaloy Cladding" }, type: { pt: "Liga de Zircônio", en: "Zirconium Alloy" },
+      desc: { pt: "Liga metálica que envolve pastilhas de urânio, transparente a nêutrons de fissão.", en: "Metal alloy encasing uranium pellets, transparent to fission neutrons." } },
+    { id: 48, icon: "activity", color: "bg-orange-700", stats: { lifetime: 25, cost: 40, impact: 70, resistance: 50, maxTemp: 220 },
+      title: { pt: "Cimento Ósseo (PMMA)", en: "Bone Cement (PMMA)" }, type: { pt: "Polímero Acrílico", en: "Acrylic Polymer" },
+      desc: { pt: "Acrílico curado no local para fixar próteses articulares ao osso circundante.", en: "Acrylic cured in place to affix joint prostheses to surrounding bone." } },
+    { id: 49, icon: "zap", color: "bg-purple-800", stats: { lifetime: 55, cost: 55, impact: 85, resistance: 65, maxTemp: 3000 },
+      title: { pt: "Capacitor de Tântalo", en: "Tantalum Capacitor" }, type: { pt: "Metal Refratário / Óxido", en: "Refractory Metal / Oxide" },
+      desc: { pt: "Usa o pó de Tântalo para atingir altíssima capacitância em aparelhos muito pequenos.", en: "Uses Tantalum powder to achieve very high capacitance in tiny devices." } },
+    { id: 50, icon: "cpu", color: "bg-indigo-900", stats: { lifetime: 30, cost: 80, impact: 30, resistance: 45, maxTemp: 80 },
+      title: { pt: "Tinta de Prata Condutiva", en: "Conductive Silver Ink" }, type: { pt: "Compósito Funcional", en: "Functional Composite" },
+      desc: { pt: "Nanopartículas de prata em matriz polimérica para imprimir circuitos flexíveis e RFID.", en: "Silver nanoparticles in a polymer matrix for printing flexible circuits and RFID." } }
+];
+
+// --- GAME STATE ---
+let gameState = 'start'; // start, playing, result, gameover
+let playerDeck = [];
+let cpuDeck = [];
+let tiedCards = [];
+let turn = 'player'; // player, cpu
+let selectedStat = null;
+let roundWinner = null;
+
+// --- INITIALIZATION ---
+function init() {
+    render();
+    updateInfoTexts();
+    initParticles();
+    animateParticles();
+}
+
+function toggleLang(lang) {
+    currentLang = lang;
+    document.getElementById('btn-pt').className = currentLang === 'pt' ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity' : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
+    document.getElementById('btn-en').className = currentLang === 'en' ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity' : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
+    updateInfoTexts();
+    render();
+}
+
+function updateInfoTexts() {
+    if(document.getElementById('text-info-title')) {
+        document.getElementById('text-info-title').innerText = t('infoTitle');
+        document.getElementById('text-rules-title').innerText = t('rulesTitle');
+        document.getElementById('text-rules-desc').innerText = t('rulesDesc');
+        document.getElementById('text-pedagogy-title').innerText = t('pedagogyTitle');
+        document.getElementById('text-pedagogy-desc').innerText = t('pedagogyDesc');
+    }
+}
+
+function startGame() {
+    playSfx('click');
+    // Sorteia 10 cartas do baralho de 50
+    const shuffledDeck = [...MASTER_DECK].sort(() => Math.random() - 0.5);
+    const selectedCards = shuffledDeck.slice(0, 10);
+    
+    playerDeck = selectedCards.slice(0, 5);
+    cpuDeck = selectedCards.slice(5, 10);
+    
+    gameState = 'playing';
+    turn = 'player';
+    selectedStat = null;
+    roundWinner = null;
+    tiedCards = [];
+    render();
+}
+
+// --- LOGIC ---
+function handleStatSelect(statKey) {
     if (gameState !== 'playing' || turn !== 'player') return;
-    
-    setSelectedStat(statKey);
+    playSfx('click');
+    selectedStat = statKey;
     resolveRound(statKey);
-  };
+}
 
-  const resolveRound = (statKey) => {
-    const playerCard = playerDeck[0];
-    const cpuCard = cpuDeck[0];
+function resolveRound(statKey) {
+    const pVal = playerDeck[0].stats[statKey];
+    const cVal = cpuDeck[0].stats[statKey];
     
-    const pValue = playerCard.stats[statKey];
-    const cValue = cpuCard.stats[statKey];
-    const isLowerBetter = STAT_LABELS[statKey].lowerIsBetter;
+    // Todos os atributos o maior vence, exceto custo onde menor é melhor (regra assumida)
+    const isLowerBetter = statKey === 'cost'; 
 
-    let winner = null;
-    if (pValue === cValue) {
-      winner = 'draw';
+    if (pVal === cVal) {
+        roundWinner = 'draw';
+        playSfx('draw');
     } else if (isLowerBetter) {
-      winner = pValue < cValue ? 'player' : 'cpu';
+        roundWinner = pVal < cVal ? 'player' : 'cpu';
+        playSfx(roundWinner === 'player' ? 'win' : 'lose');
     } else {
-      winner = pValue > cValue ? 'player' : 'cpu';
+        roundWinner = pVal > cVal ? 'player' : 'cpu';
+        playSfx(roundWinner === 'player' ? 'win' : 'lose');
     }
-
-    setRoundWinner(winner);
-    setGameState('result');
-  };
-
-  const nextRound = () => {
-    const pCard = playerDeck[0];
-    const cCard = cpuDeck[0];
     
-    let newPlayerDeck = [...playerDeck.slice(1)];
-    let newCpuDeck = [...cpuDeck.slice(1)];
-    let newTiedCards = [...tiedCards];
+    gameState = 'result';
+    render();
+}
 
+function nextRound() {
+    playSfx('click');
+    const pCard = playerDeck.shift();
+    const cCard = cpuDeck.shift();
+    
     if (roundWinner === 'player') {
-      newPlayerDeck = [...newPlayerDeck, pCard, cCard, ...newTiedCards];
-      newTiedCards = [];
-      setTurn('player');
+        playerDeck.push(pCard, cCard, ...tiedCards);
+        tiedCards = [];
+        turn = 'player';
     } else if (roundWinner === 'cpu') {
-      newCpuDeck = [...newCpuDeck, cCard, pCard, ...newTiedCards];
-      newTiedCards = [];
-      setTurn('cpu');
+        cpuDeck.push(cCard, pCard, ...tiedCards);
+        tiedCards = [];
+        turn = 'cpu';
     } else { // draw
-      newTiedCards = [...newTiedCards, pCard, cCard];
-      // turn stays the same
+        tiedCards.push(pCard, cCard);
     }
 
-    setPlayerDeck(newPlayerDeck);
-    setCpuDeck(newCpuDeck);
-    setTiedCards(newTiedCards);
-    setSelectedStat(null);
-    setRoundWinner(null);
+    selectedStat = null;
+    roundWinner = null;
 
-    // Verifica fim de jogo
-    if (newPlayerDeck.length === 0 || newCpuDeck.length === 0) {
-      setGameState('gameover');
+    if (playerDeck.length === 0 || cpuDeck.length === 0) {
+        gameState = 'gameover';
     } else {
-      setGameState('playing');
-      
-      // Se for a vez da CPU, ela escolhe o melhor status da sua carta
-      if (roundWinner === 'cpu' || (roundWinner === 'draw' && turn === 'cpu')) {
-        setTimeout(() => {
-          cpuPlayRound(newCpuDeck[0]);
-        }, 1500); // pequeno delay para a CPU "pensar"
-      }
+        gameState = 'playing';
+        if (turn === 'cpu') {
+            setTimeout(cpuPlayRound, 1500);
+        }
     }
-  };
+    render();
+}
 
-  const cpuPlayRound = (card) => {
-    // Lógica simples de IA: escolhe o atributo com maior valor numérico relativo 
-    // (Apenas pega o maior número para simplificar, idealmente normalizaria)
+function cpuPlayRound() {
+    if (gameState !== 'playing' || turn !== 'player' && cpuDeck.length === 0) return;
+    const card = cpuDeck[0];
     let bestStat = 'maxTemp';
-    let maxValue = -1;
+    let maxRel = -1;
     
+    // Simple AI: pick stat with highest normalized value (rough approximation)
+    const maxPossibles = { lifetime: 100, cost: 100, impact: 100, resistance: 100, maxTemp: 4000 };
     Object.keys(card.stats).forEach(stat => {
-       if (card.stats[stat] > maxValue) {
-           maxValue = card.stats[stat];
-           bestStat = stat;
-       }
+        let val = card.stats[stat];
+        if(stat === 'cost') val = 100 - val; // invert cost for logic
+        let relative = val / maxPossibles[stat];
+        if (relative > maxRel) {
+            maxRel = relative;
+            bestStat = stat;
+        }
     });
 
-    setSelectedStat(bestStat);
+    selectedStat = bestStat;
     resolveRound(bestStat);
-  };
+}
 
-  // --- COMPONENTES DE UI ---
+// --- RENDERING ---
+function render() {
+    const app = document.getElementById('app');
+    
+    if (gameState === 'start') {
+        app.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center">
+                <i data-lucide="rocket" class="w-20 h-20 text-[#8DC63F] mb-6 animate-bounce"></i>
+                <h1 class="text-5xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400">
+                    ${t('title')}
+                </h1>
+                <h2 class="text-2xl font-semibold mb-8 text-blue-300">${t('subtitle')}</h2>
+                <p class="max-w-md text-slate-400 mb-8">${t('desc')}</p>
+                <button onclick="startGame()" class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-xl py-4 px-10 rounded-full shadow-[0_0_15px_rgba(141,198,63,0.5)] transition-all transform hover:scale-105">
+                    ${t('start')}
+                </button>
+            </div>
+        `;
+    } 
+    else if (gameState === 'gameover') {
+        const playerWon = playerDeck.length > 0;
+        app.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center">
+                <i data-lucide="trophy" class="w-24 h-24 mb-6 ${playerWon ? 'text-yellow-400' : 'text-slate-500'}"></i>
+                <h1 class="text-5xl font-black mb-4">${playerWon ? t('youWonGame') : t('gameOver')}</h1>
+                <p class="text-xl text-slate-400 mb-8">${playerWon ? t('winDesc') : t('loseDesc')}</p>
+                <div class="flex gap-8 mb-12 text-2xl font-bold">
+                    <span class="text-blue-400">${t('player')}: ${playerDeck.length}</span>
+                    <span class="text-red-400">${t('cpu')}: ${cpuDeck.length}</span>
+                </div>
+                <button onclick="startGame()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-3 px-8 rounded-full transition-all">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i> ${t('rematch')}
+                </button>
+            </div>
+        `;
+    }
+    else {
+        app.innerHTML = `
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
+                <div class="flex flex-col">
+                    <span class="text-sm text-slate-400 uppercase tracking-wide">${t('player')}</span>
+                    <span class="text-3xl font-bold text-blue-400">${playerDeck.length} <span class="text-lg text-slate-500">${t('cards')}</span></span>
+                </div>
+                <div class="text-center">
+                    <h1 class="text-xl md:text-2xl font-black text-[#8DC63F] tracking-widest uppercase hidden md:block">${t('title')}</h1>
+                    <div class="text-sm font-medium text-slate-400 mt-1">
+                        ${tiedCards.length > 0 ? `<span class="text-yellow-400 animate-pulse">${t('drawAccum')}: ${tiedCards.length}!</span>` : ''}
+                    </div>
+                </div>
+                <div class="flex flex-col text-right">
+                    <span class="text-sm text-slate-400 uppercase tracking-wide">${t('cpu')}</span>
+                    <span class="text-3xl font-bold text-red-400">${cpuDeck.length} <span class="text-lg text-slate-500">${t('cards')}</span></span>
+                </div>
+            </header>
 
-  const CardView = ({ card, isHidden, isActive, onSelectStat, selectedStat, isWinner }) => {
-    if (!card) return null;
-    const Icon = card.icon || AlertCircle;
+            <!-- Board -->
+            <main class="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+                <!-- Player Card -->
+                <div class="flex flex-col items-center">
+                    <h3 class="mb-4 text-xl font-semibold text-blue-300">${t('yourCard')}</h3>
+                    ${getCardHTML(playerDeck[0], false, gameState === 'result' ? roundWinner === 'player' : null, gameState === 'playing' && turn === 'player')}
+                </div>
 
+                <!-- Center Panel -->
+                <div class="flex flex-col items-center justify-center w-full max-w-xs text-center order-first lg:order-none mb-4 lg:mb-0">
+                    ${gameState === 'playing' ? `
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full">
+                            <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
+                            <h3 class="text-xl font-bold mb-2">${turn === 'player' ? t('yourTurn') : t('cpuTurn')}</h3>
+                            <p class="text-slate-400 text-sm">${turn === 'player' ? t('clickStat') : t('cpuThinking')}</p>
+                        </div>
+                    ` : `
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center">
+                            <h3 class="text-xl font-black mb-2 text-white">
+                                ${roundWinner === 'player' ? t('youWonRound') : roundWinner === 'cpu' ? t('cpuWonRound') : t('roundDraw')}
+                            </h3>
+                            <p class="text-yellow-400 font-bold mb-6">${selectedStat ? t('stats', selectedStat) : ''}</p>
+                            <button onclick="nextRound()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 w-full">
+                                ${t('nextRound')}
+                            </button>
+                        </div>
+                    `}
+                </div>
+
+                <!-- CPU Card -->
+                <div class="flex flex-col items-center">
+                    <h3 class="mb-4 text-xl font-semibold text-red-300">${t('cpuCard')}</h3>
+                    ${getCardHTML(cpuDeck[0], gameState === 'playing', gameState === 'result' ? roundWinner === 'cpu' : null, false)}
+                </div>
+            </main>
+        `;
+    }
+    
+    lucide.createIcons(); // Initialize icons
+}
+
+function getCardHTML(card, isHidden, isWinner, isActive) {
+    if (!card) return '';
+    
     if (isHidden) {
-      return (
-        <div className="w-64 h-[26rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
-           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
-           <Rocket size={64} className="text-blue-300 mb-4 opacity-80" />
-           <h3 className="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">Super<br/>Trunfo</h3>
-           <p className="text-blue-400 text-sm mt-2">Materiais</p>
-        </div>
-      );
+        return `
+            <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-0 opacity-20 card-hidden-bg"></div>
+                <i data-lucide="rocket" class="w-16 h-16 text-blue-300 mb-4 opacity-80"></i>
+                <h3 class="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">${t('title').replace(' ', '<br/>')}</h3>
+            </div>
+        `;
     }
 
-    return (
-      <div className={`w-72 h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${isWinner === true ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105' : isWinner === false ? 'border-gray-500 opacity-80' : 'border-green-600 shadow-lg'} flex flex-col overflow-hidden transition-all duration-300`}>
-        {/* Imagem / Header da Carta */}
-        <div className="h-1/3 relative flex items-center justify-center p-2">
-            <div className={`absolute inset-0 ${card.color} opacity-90`}></div>
-            <div className="relative z-10 text-center">
-                <Icon size={48} className="mx-auto text-white mb-2 drop-shadow-md" />
-                <h2 className="font-bold text-white text-lg leading-tight drop-shadow-md">{card.title}</h2>
-                <p className="text-xs text-white/80 mt-1">{card.type}</p>
-            </div>
-        </div>
+    const borderClass = isWinner === true ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105' : 
+                        isWinner === false ? 'border-gray-500 opacity-80' : 'border-[#8DC63F] shadow-lg';
 
-        {/* Status Table (Azul como na imagem) */}
-        <div className="bg-[#4169E1] flex-1 flex flex-col">
-          {Object.entries(STAT_LABELS).map(([key, config]) => {
-            const isSelected = selectedStat === key;
-            return (
-              <div 
-                key={key}
-                onClick={() => isActive && onSelectStat(key)}
-                className={`flex justify-between items-center px-4 py-2 border-b border-blue-400/30 text-white cursor-pointer transition-colors
-                  ${isActive ? 'hover:bg-blue-500/50' : ''}
-                  ${isSelected ? 'bg-yellow-400 text-blue-900 font-bold shadow-inner' : ''}
-                `}
-              >
-                <span className="text-sm">{config.label}</span>
-                <span className="text-base font-semibold">{card.stats[key]}{config.suffix}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Descrição */}
-        <div className="h-1/4 bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify">
-            {card.description}
-        </div>
-      </div>
-    );
-  };
-
-  // --- TELAS ---
-
-  if (gameState === 'start') {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4 font-sans">
-        <Rocket size={80} className="text-[#8DC63F] mb-6 animate-bounce" />
-        <h1 className="text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400 text-center">
-          Super Trunfo
-        </h1>
-        <h2 className="text-2xl font-semibold mb-8 text-blue-300">Engenharia de Materiais</h2>
-        <p className="max-w-md text-center text-slate-400 mb-8">
-          Descubra as propriedades incríveis das cerâmicas avançadas e materiais estruturais. Compare resistência, custo e temperatura para vencer!
-        </p>
-        <button 
-          onClick={initializeGame}
-          className="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-xl py-4 px-10 rounded-full shadow-[0_0_15px_rgba(141,198,63,0.5)] transition-all transform hover:scale-105"
-        >
-          Iniciar Jogo
-        </button>
-      </div>
-    );
-  }
-
-  if (gameState === 'gameover') {
-    const playerWon = playerDeck.length > 0;
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4 font-sans">
-        <Trophy size={100} className={`mb-6 ${playerWon ? 'text-yellow-400' : 'text-slate-500'}`} />
-        <h1 className="text-5xl font-black mb-4">
-          {playerWon ? 'Você Venceu!' : 'Fim de Jogo'}
-        </h1>
-        <p className="text-xl text-slate-400 mb-8">
-          {playerWon ? 'Você dominou a ciência dos materiais!' : 'A CPU superou seus conhecimentos estruturais.'}
-        </p>
-        <div className="flex gap-8 mb-12 text-2xl font-bold">
-            <span className="text-blue-400">Suas Cartas: {playerDeck.length}</span>
-            <span className="text-red-400">Cartas CPU: {cpuDeck.length}</span>
-        </div>
-        <button 
-          onClick={initializeGame}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-3 px-8 rounded-full transition-all"
-        >
-          <RefreshCw size={20} /> Jogar Novamente
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 flex flex-col font-sans">
-      {/* HEADER */}
-      <header className="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl shadow-lg border border-slate-700">
-        <div className="flex flex-col">
-            <span className="text-sm text-slate-400 uppercase tracking-wide">Jogador</span>
-            <span className="text-3xl font-bold text-blue-400">{playerDeck.length} <span className="text-lg text-slate-500">cartas</span></span>
-        </div>
-        
-        <div className="text-center">
-            <h1 className="text-2xl font-black text-[#8DC63F] tracking-widest uppercase">Trunfo Materiais</h1>
-            <div className="text-sm font-medium text-slate-400 mt-1">
-                {tiedCards.length > 0 && <span className="text-yellow-400 animate-pulse">Empate acumulado: {tiedCards.length} cartas!</span>}
-            </div>
-        </div>
-
-        <div className="flex flex-col text-right">
-            <span className="text-sm text-slate-400 uppercase tracking-wide">CPU</span>
-            <span className="text-3xl font-bold text-red-400">{cpuDeck.length} <span className="text-lg text-slate-500">cartas</span></span>
-        </div>
-      </header>
-
-      {/* ÁREA DE JOGO */}
-      <main className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-        
-        {/* CARTA DO JOGADOR */}
-        <div className="flex flex-col items-center">
-            <h3 className="mb-4 text-xl font-semibold text-blue-300">Sua Carta</h3>
-            <CardView 
-                card={playerDeck[0]} 
-                isHidden={false} 
-                isActive={gameState === 'playing' && turn === 'player'}
-                onSelectStat={handleStatSelect}
-                selectedStat={selectedStat}
-                isWinner={gameState === 'result' ? (roundWinner === 'player') : null}
-            />
-        </div>
-
-        {/* PAINEL CENTRAL (Ações e Status) */}
-        <div className="flex flex-col items-center justify-center min-w-[200px] text-center">
-            {gameState === 'playing' ? (
-                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl">
-                    <Activity size={48} className={`mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}`} />
-                    <h3 className="text-xl font-bold mb-2">
-                        {turn === 'player' ? 'Sua Vez!' : 'Vez da CPU...'}
-                    </h3>
-                    <p className="text-slate-400 text-sm">
-                        {turn === 'player' 
-                            ? 'Clique em um atributo da sua carta para desafiar.' 
-                            : 'A CPU está analisando os materiais...'}
-                    </p>
+    return `
+        <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${borderClass} flex flex-col overflow-hidden transition-all duration-300 relative select-none">
+            <!-- Header -->
+            <div class="h-[30%] relative flex items-center justify-center p-2">
+                <div class="absolute inset-0 ${card.color} opacity-90"></div>
+                <div class="relative z-10 text-center w-full px-1">
+                    <i data-lucide="${card.icon}" class="w-10 h-10 mx-auto text-white mb-1 drop-shadow-md"></i>
+                    <h2 class="font-bold text-white text-[0.95rem] leading-tight drop-shadow-md">${card.title[currentLang]}</h2>
+                    <p class="text-[0.65rem] text-white/80 mt-1 font-semibold tracking-wider uppercase">${card.type[currentLang]}</p>
                 </div>
-            ) : (
-                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl flex flex-col items-center">
-                    <h3 className="text-2xl font-black mb-2 text-white">
-                        {roundWinner === 'player' ? 'Você Ganhou!' : roundWinner === 'cpu' ? 'CPU Ganhou!' : 'Empate!'}
-                    </h3>
-                    <p className="text-yellow-400 font-bold mb-6">
-                        {selectedStat && STAT_LABELS[selectedStat].label}
-                    </p>
-                    
-                    <button 
-                        onClick={nextRound}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
-                    >
-                        Próxima Rodada
-                    </button>
-                </div>
-            )}
-        </div>
+            </div>
 
-        {/* CARTA DA CPU */}
-        <div className="flex flex-col items-center">
-            <h3 className="mb-4 text-xl font-semibold text-red-300">Carta da CPU</h3>
-            <CardView 
-                card={cpuDeck[0]} 
-                isHidden={gameState === 'playing'} 
-                isActive={false}
-                selectedStat={selectedStat}
-                isWinner={gameState === 'result' ? (roundWinner === 'cpu') : null}
-            />
-        </div>
-      </main>
+            <!-- Stats -->
+            <div class="bg-[#4169E1] flex-1 flex flex-col text-sm border-t-2 border-[#2b4cba]">
+                ${Object.keys(card.stats).map(key => {
+                    const isSel = selectedStat === key;
+                    const suffix = key === 'maxTemp' ? ' °C' : '';
+                    return `
+                        <div onclick="handleStatSelect('${key}')" class="stat-row flex justify-between items-center px-4 py-2 flex-1 border-b border-blue-400/30 text-white ${isActive ? 'cursor-pointer' : ''} transition-colors ${isSel ? 'stat-selected shadow-inner' : ''}">
+                            <span>${t('stats', key)}</span>
+                            <span class="font-bold">${card.stats[key]}${suffix}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
 
+            <!-- Desc -->
+        <div class="h-[25%] bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify border-t-2 border-[#2b4cba]">
+            ${card.desc[currentLang]}
+        </div>
     </div>
-  );
+`;
 }
+
+// --- NEW FEATURES LOGIC (AUDIO, MODAL, PARTICLES) ---
+
+// Audio System
+let musicPlaying = false;
+
+function toggleMusic() {
+    const bgMusic = document.getElementById('bg-music');
+    bgMusic.volume = 0.3;
+    
+    if (musicPlaying) {
+        bgMusic.pause();
+        musicPlaying = false;
+        document.getElementById('icon-music').setAttribute('data-lucide', 'volume-x');
+        document.getElementById('btn-music').classList.remove('text-[#8DC63F]');
+        document.getElementById('btn-music').classList.add('text-slate-400');
+    } else {
+        bgMusic.play().catch(e => console.log("Audio play blocked", e));
+        musicPlaying = true;
+        document.getElementById('icon-music').setAttribute('data-lucide', 'volume-2');
+        document.getElementById('btn-music').classList.remove('text-slate-400');
+        document.getElementById('btn-music').classList.add('text-[#8DC63F]');
+    }
+    lucide.createIcons();
+}
+
+function playSfx(type) {
+    const sfx = document.getElementById('sfx-' + type);
+    if (sfx) {
+        sfx.currentTime = 0;
+        sfx.volume = 0.5;
+        sfx.play().catch(e => {}); // Ignore auto-play errors
+    }
+}
+
+// Info Modal
+function toggleInfo() {
+    const modal = document.getElementById('info-modal');
+    const content = document.getElementById('info-modal-content');
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+        playSfx('click');
+    } else {
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+        playSfx('click');
+    }
+}
+
+// Particle System (Background Simulation)
+let particlesArray = [];
+let canvas, ctx;
+
+function initParticles() {
+    canvas = document.getElementById('particles');
+    ctx = canvas.getContext('2d');
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    particlesArray = [];
+    const numParticles = Math.min(window.innerWidth / 12, 120);
+    for (let i = 0; i < numParticles; i++) {
+        particlesArray.push(new Particle());
+    }
+}
+
+function resizeCanvas() {
+    if(canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+}
+
+class Particle {
+    constructor() {
+        this.x = Math.random() * window.innerWidth;
+        this.y = Math.random() * window.innerHeight;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = Math.random() * 1 - 0.5;
+        this.speedY = Math.random() * 1 - 0.5;
+        // Material-like colors
+        const colors = ['rgba(255, 165, 0, 0.4)', 'rgba(141, 198, 63, 0.4)', 'rgba(65, 105, 225, 0.4)', 'rgba(200, 200, 200, 0.4)'];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.size > 0.2) this.size -= 0.005;
+        
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height || this.size <= 0.2) {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 3 + 1;
+        }
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function animateParticles() {
+    if(!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particlesArray.length; i++) {
+        particlesArray[i].update();
+        particlesArray[i].draw();
+    }
+    connectParticles();
+    requestAnimationFrame(animateParticles);
+}
+
+function connectParticles() {
+    let opacityValue = 1;
+    for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+            let dx = particlesArray[a].x - particlesArray[b].x;
+            let dy = particlesArray[a].y - particlesArray[b].y;
+            let distance = dx * dx + dy * dy;
+            
+            if (distance < 12000) {
+                opacityValue = 1 - (distance / 12000);
+                ctx.strokeStyle = `rgba(141, 198, 63, ${opacityValue * 0.15})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                ctx.stroke();
+            }
+        }
+    }
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
