@@ -394,29 +394,51 @@ async function initSupabase() {
         lucide.createIcons();
         return;
     }
-    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    if (typeof supabase === 'undefined') {
+        console.error('Supabase SDK failed to load.');
+        appMode = 'auth';
+        render();
+        return;
+    }
 
-    // Keep auth state in sync
-    sb.auth.onAuthStateChange(async (_event, session) => {
-        const newUser = session?.user ?? null;
-        if (newUser?.id !== currentUser?.id) {
-            currentUser = newUser;
-            if (currentUser) {
-                await loadProfile();
-            } else {
-                currentProfile = null;
-                _cleanupChannels();
-                appMode = 'auth';
-                render();
+    try {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Keep auth state in sync
+        sb.auth.onAuthStateChange(async (_event, session) => {
+            const newUser = session?.user ?? null;
+            if (newUser?.id !== currentUser?.id) {
+                currentUser = newUser;
+                if (currentUser) {
+                    await loadProfile();
+                } else {
+                    currentProfile = null;
+                    _cleanupChannels();
+                    appMode = 'auth';
+                    render();
+                }
             }
-        }
-    });
+        });
 
-    const { data: { session } } = await sb.auth.getSession();
-    currentUser = session?.user ?? null;
-    if (currentUser) {
-        await loadProfile();
-    } else {
+        let timeoutId;
+        const timeout = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('Supabase connection timeout')), 10000);
+        });
+        let session;
+        try {
+            ({ data: { session } } = await Promise.race([sb.auth.getSession(), timeout]));
+        } finally {
+            clearTimeout(timeoutId);
+        }
+        currentUser = session?.user ?? null;
+        if (currentUser && appMode === 'loading') {
+            await loadProfile();
+        } else if (!currentUser) {
+            appMode = 'auth';
+            render();
+        }
+    } catch (err) {
+        console.error('initSupabase error:', err);
         appMode = 'auth';
         render();
     }
