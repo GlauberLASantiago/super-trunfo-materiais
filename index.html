@@ -6,6 +6,7 @@
     <title>Super Trunfo: Engenharia de Materiais</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -15,8 +16,6 @@
         }
         .stat-row:hover { background-color: rgba(59, 130, 246, 0.5); }
         .stat-selected { background-color: #facc15 !important; color: #1e3a8a !important; font-weight: 800; }
-        
-        /* Custom Scrollbar for descriptions */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
@@ -29,6 +28,7 @@
 
     <!-- Top Controls -->
     <div class="absolute top-4 right-4 z-50 flex gap-3 items-center">
+        <div id="user-header" class="hidden"></div>
         <button onclick="toggleInfo()" class="p-2 rounded-full bg-slate-800 text-[#8DC63F] hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Informações">
             <i data-lucide="info" class="w-5 h-5"></i>
         </button>
@@ -46,7 +46,6 @@
         <div class="bg-slate-800 border border-[#8DC63F] rounded-2xl p-6 md:p-8 max-w-3xl w-full text-white shadow-2xl relative transform scale-95 transition-transform duration-300" id="info-modal-content">
             <button onclick="toggleInfo()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700/50 rounded-full p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
             <h2 id="modal-title" class="text-3xl font-black text-[#8DC63F] mb-6 flex items-center gap-2"><i data-lucide="graduation-cap"></i> <span id="text-info-title">Sobre o Jogo</span></h2>
-            
             <div class="space-y-6 text-sm md:text-base text-slate-300 max-h-[70vh] overflow-y-auto pr-2">
                 <div>
                     <h3 class="text-white font-bold text-xl mb-2 flex items-center gap-2 text-blue-400"><i data-lucide="gamepad-2"></i> <span id="text-rules-title">Como Funciona</span></h3>
@@ -70,54 +69,102 @@
     <div id="app" class="flex-1 flex flex-col p-4 w-full max-w-7xl mx-auto relative z-10"></div>
 
 <script>
-// --- DICTIONARY & TRANSLATIONS ---
+// ============================================================
+// CONFIGURAÇÃO DO SUPABASE
+// Substitua os valores abaixo pelos do seu projeto Supabase.
+// Acesse: Dashboard → Project Settings → API
+// ============================================================
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+// Nomes das tabelas (prefixo obrigatório)
+const TBL_PROFILES   = 'super-trunfo-profiles';
+const TBL_GAME_ROOMS = 'super-trunfo-game-rooms';
+
+// ── TRADUÇÕES ─────────────────────────────────────────────────────────────────
 const i18n = {
     pt: {
         title: "Super Trunfo", subtitle: "Engenharia de Materiais",
         desc: "Descubra as propriedades dos materiais! O jogo sorteia 10 cartas aleatórias do baralho de 50. Compare resistência, custo e temperatura para vencer!",
         start: "Iniciar Partida", rematch: "Jogar Novamente",
         player: "Jogador", cpu: "CPU", cards: "cartas", drawAccum: "Empate acumulado",
-        yourCard: "Sua Carta", cpuCard: "Carta da CPU",
-        yourTurn: "Sua Vez!", cpuTurn: "Vez da CPU...",
+        yourCard: "Sua Carta", cpuCard: "Carta do Oponente",
+        yourTurn: "Sua Vez!", cpuTurn: "Vez do Oponente...",
         clickStat: "Clique em um atributo da sua carta para desafiar.",
-        cpuThinking: "A CPU está analisando os materiais...",
+        cpuThinking: "O oponente está analisando os materiais...",
         comparing: "Analisando...",
-        youWonRound: "Você Ganhou a Rodada!", cpuWonRound: "A CPU Ganhou a Rodada!", roundDraw: "Empate!",
+        youWonRound: "Você Ganhou a Rodada!", cpuWonRound: "Oponente Ganhou a Rodada!", roundDraw: "Empate!",
         nextRound: "Próxima Rodada",
-        gameOver: "Fim de Jogo", youWonGame: "Você Venceu o Jogo!", cpuWonGame: "A CPU Venceu!",
+        gameOver: "Fim de Jogo", youWonGame: "Você Venceu o Jogo!",
         winDesc: "Você dominou a ciência dos materiais!", loseDesc: "A CPU superou seus conhecimentos estruturais.",
-        stats: {
-            lifetime: "Vida Útil", cost: "Custo", impact: "Impacto Diário", resistance: "Resistência", maxTemp: "Temp. Máx."
-        },
+        stats: { lifetime: "Vida Útil", cost: "Custo", impact: "Impacto Diário", resistance: "Resistência", maxTemp: "Temp. Máx." },
         infoTitle: "Sobre o Jogo", rulesTitle: "Como Funciona", pedagogyTitle: "Objetivo Pedagógico",
-        rulesDesc: "O jogo distribui 5 cartas para você e 5 para a CPU. Na sua vez, escolha o melhor atributo da sua carta do topo para tentar superar a carta da CPU (lembre-se: para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas. O jogo termina quando um dos jogadores ficar com todas as cartas.",
-        pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais, este jogo visa construir uma intuição rápida sobre as propriedades de diferentes classes de materiais (Cerâmicas, Metais, Polímeros e Compósitos). Ao comparar atributos, o aluno internaliza a correlação entre estrutura, propriedades e aplicação real — como o fato de cerâmicas suportarem temperaturas extremas (refratários), ou polímeros terem menor custo e menor resistência."
+        rulesDesc: "O jogo distribui 5 cartas para você e 5 para o oponente. Na sua vez, escolha o melhor atributo da sua carta do topo para tentar superar a carta do oponente (lembre-se: para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas. O jogo termina quando um dos jogadores ficar com todas as cartas.",
+        pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais, este jogo visa construir uma intuição rápida sobre as propriedades de diferentes classes de materiais (Cerâmicas, Metais, Polímeros e Compósitos). Ao comparar atributos, o aluno internaliza a correlação entre estrutura, propriedades e aplicação real — como o fato de cerâmicas suportarem temperaturas extremas (refratários), ou polímeros terem menor custo e menor resistência.",
+        loginDesc: "Faça login com sua conta Google para jogar com outros engenheiros de materiais online!",
+        loginBtn: "Entrar com Google",
+        nicknameTitle: "Escolha seu Apelido",
+        nicknameDesc: "Como você quer ser chamado no jogo?",
+        nicknamePlaceholder: "Seu nickname...",
+        nicknameSave: "Salvar e Entrar",
+        waitingRooms: "Salas Disponíveis",
+        createRoom: "Criar Nova Sala",
+        joinRoom: "Entrar",
+        noRooms: "Nenhuma sala disponível. Crie uma nova!",
+        playOffline: "Jogar contra CPU (offline)",
+        waitingTitle: "Aguardando Oponente...",
+        waitingDesc: "Compartilhe o código da sala com um amigo ou aguarde alguém entrar.",
+        cancelWait: "Cancelar Sala",
+        waitingOpponent: "Aguardando oponente...",
+        leave: "Sair da Partida",
+        lobby: "Lobby",
+        loading: "Carregando...",
+        roomCode: "Código da sala"
     },
     en: {
         title: "Top Trumps", subtitle: "Materials Engineering",
         desc: "Discover material properties! The game draws 10 random cards from a deck of 50. Compare resistance, cost, and temperature to win!",
         start: "Start Match", rematch: "Play Again",
         player: "Player", cpu: "CPU", cards: "cards", drawAccum: "Accumulated draw",
-        yourCard: "Your Card", cpuCard: "CPU's Card",
-        yourTurn: "Your Turn!", cpuTurn: "CPU's Turn...",
+        yourCard: "Your Card", cpuCard: "Opponent's Card",
+        yourTurn: "Your Turn!", cpuTurn: "Opponent's Turn...",
         clickStat: "Click an attribute on your card to challenge.",
-        cpuThinking: "The CPU is analyzing the materials...",
+        cpuThinking: "The opponent is analyzing the materials...",
         comparing: "Analyzing...",
-        youWonRound: "You Won the Round!", cpuWonRound: "CPU Won the Round!", roundDraw: "Draw!",
+        youWonRound: "You Won the Round!", cpuWonRound: "Opponent Won the Round!", roundDraw: "Draw!",
         nextRound: "Next Round",
-        gameOver: "Game Over", youWonGame: "You Won the Game!", cpuWonGame: "The CPU Won!",
+        gameOver: "Game Over", youWonGame: "You Won the Game!",
         winDesc: "You have mastered materials science!", loseDesc: "The CPU outsmarted your structural knowledge.",
-        stats: {
-            lifetime: "Lifetime", cost: "Cost", impact: "Daily Impact", resistance: "Resistance", maxTemp: "Max Temp."
-        },
+        stats: { lifetime: "Lifetime", cost: "Cost", impact: "Daily Impact", resistance: "Resistance", maxTemp: "Max Temp." },
         infoTitle: "About the Game", rulesTitle: "How it Works", pedagogyTitle: "Pedagogical Objective",
-        rulesDesc: "The game deals 5 cards to you and 5 to the CPU. On your turn, choose the best attribute of your top card to beat the CPU's card (remember: for 'Cost', the lowest value wins!). The winner of the round takes both cards. The game ends when one player collects all the cards.",
-        pedagogyDesc: "Developed for Materials Engineering students, this game aims to build quick intuition about the properties of different material classes (Ceramics, Metals, Polymers, and Composites). By comparing attributes, students internalize the correlation between structure, properties and real-world application — such as ceramics withstanding extreme temperatures (refractories), or polymers having lower cost and lower resistance."
+        rulesDesc: "The game deals 5 cards to you and 5 to the opponent. On your turn, choose the best attribute of your top card to beat the opponent's card (remember: for 'Cost', the lowest value wins!). The winner of the round takes both cards. The game ends when one player collects all the cards.",
+        pedagogyDesc: "Developed for Materials Engineering students, this game aims to build quick intuition about the properties of different material classes (Ceramics, Metals, Polymers, and Composites). By comparing attributes, students internalize the correlation between structure, properties and real-world application — such as ceramics withstanding extreme temperatures (refractories), or polymers having lower cost and lower resistance.",
+        loginDesc: "Sign in with your Google account to play against other materials engineers online!",
+        loginBtn: "Sign in with Google",
+        nicknameTitle: "Choose your Nickname",
+        nicknameDesc: "What do you want to be called in the game?",
+        nicknamePlaceholder: "Your nickname...",
+        nicknameSave: "Save and Play",
+        waitingRooms: "Available Rooms",
+        createRoom: "Create New Room",
+        joinRoom: "Join",
+        noRooms: "No rooms available. Create one!",
+        playOffline: "Play vs CPU (offline)",
+        waitingTitle: "Waiting for Opponent...",
+        waitingDesc: "Share the room code with a friend or wait for someone to join.",
+        cancelWait: "Cancel Room",
+        waitingOpponent: "Waiting for opponent...",
+        leave: "Leave Match",
+        lobby: "Lobby",
+        loading: "Loading...",
+        roomCode: "Room code"
     }
 };
 
 let currentLang = 'pt';
-const t = (key, nestedKey) => nestedKey ? i18n[currentLang][key][nestedKey] : i18n[currentLang][key];
+const t = (key, nestedKey) => nestedKey
+    ? (i18n[currentLang][key]?.[nestedKey] ?? nestedKey)
+    : (i18n[currentLang][key] ?? key);
 
 // --- 50 CARDS MASTER DECK ---
 const MASTER_DECK = [
@@ -282,85 +329,436 @@ const MASTER_DECK = [
       desc: { pt: "Nanopartículas de prata em matriz polimérica para imprimir circuitos flexíveis e RFID.", en: "Silver nanoparticles in a polymer matrix for printing flexible circuits and RFID." } }
 ];
 
-// --- GAME STATE ---
-let gameState = 'start'; // start, playing, resolving, result, gameover
-let playerDeck = [];
-let cpuDeck = [];
-let tiedCards = [];
-let turn = 'player'; // player, cpu
-let selectedStat = null;
-let roundWinner = null;
 
-// --- INITIALIZATION ---
-function init() {
-    render();
+// ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────────────
+let appMode      = 'loading'; // loading | auth | nickname | lobby | game
+let sb           = null;      // Supabase client instance
+let currentUser  = null;
+let currentProfile = null;
+let currentRoom  = null;
+let roomChannel  = null;
+let lobbyChannel = null;
+let isPlayer1    = false;
+let isOfflineMode = false;
+let availableRooms = [];
+
+// ── ESTADO DO JOGO (offline e online compartilham as mesmas variáveis) ────────
+let gameState  = 'start'; // start | playing | resolving | result | gameover
+let playerDeck = [];
+let cpuDeck    = [];
+let tiedCards  = [];
+let turn       = 'player'; // player | cpu
+let selectedStat = null;
+let roundWinner  = null;
+
+// ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
+async function init() {
     updateInfoTexts();
     initParticles();
     animateParticles();
+    await initSupabase();
 }
 
 function toggleLang(lang) {
     currentLang = lang;
-    document.getElementById('btn-pt').className = currentLang === 'pt' ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity' : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
-    document.getElementById('btn-en').className = currentLang === 'en' ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity' : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
+    document.getElementById('btn-pt').className = currentLang === 'pt'
+        ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity'
+        : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
+    document.getElementById('btn-en').className = currentLang === 'en'
+        ? 'px-3 py-1 rounded-full font-bold text-sm bg-blue-600 text-white transition-opacity'
+        : 'px-3 py-1 rounded-full font-bold text-sm bg-transparent text-slate-300 transition-opacity hover:bg-slate-700';
     updateInfoTexts();
     render();
 }
 
 function updateInfoTexts() {
-    if(document.getElementById('text-info-title')) {
-        document.getElementById('text-info-title').innerText = t('infoTitle');
-        document.getElementById('text-rules-title').innerText = t('rulesTitle');
-        document.getElementById('text-rules-desc').innerText = t('rulesDesc');
-        document.getElementById('text-pedagogy-title').innerText = t('pedagogyTitle');
-        document.getElementById('text-pedagogy-desc').innerText = t('pedagogyDesc');
+    const el = (id) => document.getElementById(id);
+    if (el('text-info-title')) {
+        el('text-info-title').innerText     = t('infoTitle');
+        el('text-rules-title').innerText    = t('rulesTitle');
+        el('text-rules-desc').innerText     = t('rulesDesc');
+        el('text-pedagogy-title').innerText = t('pedagogyTitle');
+        el('text-pedagogy-desc').innerText  = t('pedagogyDesc');
     }
 }
 
-function startGame() {
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+async function initSupabase() {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Keep auth state in sync
+    sb.auth.onAuthStateChange(async (_event, session) => {
+        const newUser = session?.user ?? null;
+        if (newUser?.id !== currentUser?.id) {
+            currentUser = newUser;
+            if (currentUser) {
+                await loadProfile();
+            } else {
+                currentProfile = null;
+                _cleanupChannels();
+                appMode = 'auth';
+                render();
+            }
+        }
+    });
+
+    const { data: { session } } = await sb.auth.getSession();
+    currentUser = session?.user ?? null;
+    if (currentUser) {
+        await loadProfile();
+    } else {
+        appMode = 'auth';
+        render();
+    }
+}
+
+// ── AUTENTICAÇÃO ──────────────────────────────────────────────────────────────
+async function signInWithGoogle() {
     playSfx('click');
-    // Sorteia 10 cartas do baralho de 50
-    const shuffledDeck = [...MASTER_DECK].sort(() => Math.random() - 0.5);
-    const selectedCards = shuffledDeck.slice(0, 10);
-    
-    playerDeck = selectedCards.slice(0, 5);
-    cpuDeck = selectedCards.slice(5, 10);
-    
-    gameState = 'playing';
-    turn = 'player';
-    selectedStat = null;
-    roundWinner = null;
-    tiedCards = [];
+    await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+    });
+}
+
+async function signOut() {
+    playSfx('click');
+    if (currentRoom) await leaveRoom(true);
+    _cleanupChannels();
+    await sb.auth.signOut();
+    currentUser    = null;
+    currentProfile = null;
+    isOfflineMode  = false;
+    appMode = 'auth';
     render();
 }
 
-// --- LOGIC ---
+function _cleanupChannels() {
+    if (lobbyChannel) { lobbyChannel.unsubscribe(); lobbyChannel = null; }
+    if (roomChannel)  { roomChannel.unsubscribe();  roomChannel  = null; }
+}
+
+// ── PERFIL / NICKNAME ─────────────────────────────────────────────────────────
+async function loadProfile() {
+    const { data } = await sb
+        .from(TBL_PROFILES)
+        .select('*')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+    currentProfile = data;
+    if (!currentProfile) {
+        appMode = 'nickname';
+        render();
+    } else {
+        appMode = 'lobby';
+        render();
+        await loadRooms();
+    }
+}
+
+async function saveNickname() {
+    const input = document.getElementById('nickname-input');
+    if (!input) return;
+    const nickname = input.value.trim();
+    if (nickname.length < 2 || nickname.length > 20) {
+        _showFormError('nickname-error', currentLang === 'pt'
+            ? 'Nick deve ter entre 2 e 20 caracteres.'
+            : 'Nickname must be 2–20 characters.');
+        return;
+    }
+    const { error } = await sb.from(TBL_PROFILES).upsert({ id: currentUser.id, nickname });
+    if (error) {
+        _showFormError('nickname-error', currentLang === 'pt'
+            ? 'Nickname já em uso. Tente outro.'
+            : 'Nickname already taken. Try another.');
+        return;
+    }
+    currentProfile = { id: currentUser.id, nickname };
+    appMode = 'lobby';
+    render();
+    await loadRooms();
+}
+
+function _showFormError(id, msg) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+
+// ── LOBBY ─────────────────────────────────────────────────────────────────────
+async function loadRooms() {
+    const { data } = await sb
+        .from(TBL_GAME_ROOMS)
+        .select('id, player1_nickname, created_at')
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: true });
+    availableRooms = data ?? [];
+    if (appMode === 'lobby') render();
+
+    if (!lobbyChannel) {
+        lobbyChannel = sb.channel('lobby-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: TBL_GAME_ROOMS }, async () => {
+                const { data: rooms } = await sb
+                    .from(TBL_GAME_ROOMS)
+                    .select('id, player1_nickname, created_at')
+                    .eq('status', 'waiting')
+                    .order('created_at', { ascending: true });
+                availableRooms = rooms ?? [];
+                if (appMode === 'lobby') render();
+            })
+            .subscribe();
+    }
+}
+
+async function createRoom() {
+    playSfx('click');
+    const shuffled = [...MASTER_DECK].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 10);
+
+    const { data, error } = await sb.from(TBL_GAME_ROOMS).insert({
+        player1_id:       currentUser.id,
+        player1_nickname: currentProfile.nickname,
+        player1_deck:     selected.slice(0, 5),
+        player2_deck:     selected.slice(5, 10),
+        tied_cards:       [],
+        current_turn:     currentUser.id,
+        game_phase:       'playing',
+        status:           'waiting'
+    }).select().single();
+
+    if (error) { console.error('createRoom:', error); return; }
+
+    isPlayer1   = true;
+    currentRoom = data;
+    appMode     = 'game';
+    render();
+    subscribeToRoom(data.id);
+}
+
+async function joinRoom(roomId) {
+    playSfx('click');
+    const { data, error } = await sb
+        .from(TBL_GAME_ROOMS)
+        .update({
+            player2_id:       currentUser.id,
+            player2_nickname: currentProfile.nickname,
+            status:           'playing'
+        })
+        .eq('id', roomId)
+        .eq('status', 'waiting')
+        .select()
+        .single();
+
+    if (error || !data) {
+        alert(currentLang === 'pt' ? 'Sala não disponível. Tente outra.' : 'Room not available. Try another.');
+        await loadRooms();
+        return;
+    }
+
+    isPlayer1   = false;
+    currentRoom = data;
+    appMode     = 'game';
+    syncLocalStateFromRoom();
+    subscribeToRoom(roomId);
+    render();
+}
+
+async function leaveRoom(silent = false) {
+    if (!currentRoom) return;
+    if (roomChannel) { roomChannel.unsubscribe(); roomChannel = null; }
+    if (!silent && currentRoom.status !== 'finished') {
+        await sb.from(TBL_GAME_ROOMS).update({ status: 'finished' }).eq('id', currentRoom.id);
+    }
+    currentRoom = null;
+    isPlayer1   = false;
+    if (!silent) {
+        appMode = 'lobby';
+        render();
+        await loadRooms();
+    }
+}
+
+function playOffline() {
+    playSfx('click');
+    isOfflineMode = true;
+    currentRoom = null;
+    if (roomChannel) { roomChannel.unsubscribe(); roomChannel = null; }
+    gameState = 'start';
+    playerDeck = []; cpuDeck = []; tiedCards = [];
+    turn = 'player'; selectedStat = null; roundWinner = null;
+    appMode = 'game';
+    render();
+}
+
+function goToLobby() {
+    playSfx('click');
+    isOfflineMode = false;
+    currentRoom   = null;
+    gameState     = 'start';
+    appMode       = 'lobby';
+    render();
+    loadRooms();
+}
+
+// ── REALTIME ──────────────────────────────────────────────────────────────────
+function subscribeToRoom(roomId) {
+    if (roomChannel) roomChannel.unsubscribe();
+    roomChannel = sb.channel('room-' + roomId)
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: TBL_GAME_ROOMS, filter: 'id=eq.' + roomId },
+            (payload) => {
+                currentRoom = { ...currentRoom, ...payload.new };
+                syncLocalStateFromRoom();
+                render();
+            }
+        )
+        .subscribe();
+}
+
+function syncLocalStateFromRoom() {
+    if (!currentRoom) return;
+    playerDeck   = isPlayer1 ? (currentRoom.player1_deck ?? []) : (currentRoom.player2_deck ?? []);
+    cpuDeck      = isPlayer1 ? (currentRoom.player2_deck ?? []) : (currentRoom.player1_deck ?? []);
+    tiedCards    = currentRoom.tied_cards ?? [];
+    turn         = currentRoom.current_turn === currentUser.id ? 'player' : 'cpu';
+    gameState    = currentRoom.game_phase;
+    selectedStat = currentRoom.selected_stat ?? null;
+
+    const rw = currentRoom.round_winner;
+    if (!rw)              roundWinner = null;
+    else if (rw === 'draw')    roundWinner = 'draw';
+    else if (rw === 'player1') roundWinner = isPlayer1 ? 'player' : 'cpu';
+    else                       roundWinner = isPlayer1 ? 'cpu'    : 'player';
+}
+
+// ── LÓGICA MULTIPLAYER ────────────────────────────────────────────────────────
+async function mpHandleStatSelect(statKey) {
+    if (!currentRoom || gameState !== 'playing' || turn !== 'player') return;
+    playSfx('click');
+    playSfx('tick');
+    // Atualização otimista para UI responder imediatamente
+    selectedStat = statKey;
+    gameState    = 'resolving';
+    render();
+
+    await sb.from(TBL_GAME_ROOMS).update({
+        selected_stat: statKey,
+        game_phase:    'resolving',
+        updated_at:    new Date().toISOString()
+    }).eq('id', currentRoom.id);
+
+    setTimeout(() => mpResolveRound(statKey), 2000);
+}
+
+async function mpResolveRound(statKey) {
+    if (!currentRoom) return;
+    const myCard  = isPlayer1 ? currentRoom.player1_deck[0] : currentRoom.player2_deck[0];
+    const oppCard = isPlayer1 ? currentRoom.player2_deck[0] : currentRoom.player1_deck[0];
+    const myVal   = myCard.stats[statKey];
+    const oppVal  = oppCard.stats[statKey];
+    const isLowerBetter = statKey === 'cost';
+
+    let winner;
+    if (myVal === oppVal) {
+        winner = 'draw';
+        playSfx('draw');
+    } else {
+        const iWin = isLowerBetter ? myVal < oppVal : myVal > oppVal;
+        winner = iWin
+            ? (isPlayer1 ? 'player1' : 'player2')
+            : (isPlayer1 ? 'player2' : 'player1');
+        playSfx(iWin ? 'win' : 'lose');
+    }
+
+    await sb.from(TBL_GAME_ROOMS).update({
+        game_phase:   'result',
+        round_winner: winner,
+        updated_at:   new Date().toISOString()
+    }).eq('id', currentRoom.id);
+}
+
+async function mpNextRound() {
+    if (!currentRoom || gameState !== 'result') return;
+    const rw = currentRoom.round_winner;
+    // Somente o vencedor avança (empate: player1 avança)
+    const canTrigger = rw === 'draw'
+        ? isPlayer1
+        : (rw === 'player1' ? isPlayer1 : !isPlayer1);
+    if (!canTrigger) return;
+
+    playSfx('click');
+    const p1Deck = [...currentRoom.player1_deck];
+    const p2Deck = [...currentRoom.player2_deck];
+    let tied     = [...currentRoom.tied_cards];
+
+    const p1Card = p1Deck.shift();
+    const p2Card = p2Deck.shift();
+
+    let nextTurn = currentRoom.current_turn;
+    let newTied  = tied;
+
+    if (rw === 'player1') {
+        p1Deck.push(p1Card, p2Card, ...tied);
+        newTied  = [];
+        nextTurn = currentRoom.player1_id;
+    } else if (rw === 'player2') {
+        p2Deck.push(p2Card, p1Card, ...tied);
+        newTied  = [];
+        nextTurn = currentRoom.player2_id;
+    } else {
+        newTied = [...tied, p1Card, p2Card]; // empate: acumula
+    }
+
+    const isGameOver = p1Deck.length === 0 || p2Deck.length === 0;
+    const winnerId   = isGameOver
+        ? (p1Deck.length > 0 ? currentRoom.player1_id : currentRoom.player2_id)
+        : null;
+
+    await sb.from(TBL_GAME_ROOMS).update({
+        player1_deck:  p1Deck,
+        player2_deck:  p2Deck,
+        tied_cards:    newTied,
+        current_turn:  nextTurn,
+        game_phase:    isGameOver ? 'gameover' : 'playing',
+        status:        isGameOver ? 'finished' : 'playing',
+        round_winner:  null,
+        selected_stat: null,
+        winner_id:     winnerId,
+        updated_at:    new Date().toISOString()
+    }).eq('id', currentRoom.id);
+}
+
+// ── LÓGICA OFFLINE / CPU (mantida do original) ────────────────────────────────
+function startGame() {
+    playSfx('click');
+    const shuffled = [...MASTER_DECK].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 10);
+    playerDeck   = selected.slice(0, 5);
+    cpuDeck      = selected.slice(5, 10);
+    gameState    = 'playing';
+    turn         = 'player';
+    selectedStat = null;
+    roundWinner  = null;
+    tiedCards    = [];
+    render();
+}
+
 function handleStatSelect(statKey) {
     if (gameState !== 'playing' || turn !== 'player') return;
     playSfx('click');
     selectedStat = statKey;
-    
-    // Inicia suspense
-    gameState = 'resolving';
+    gameState    = 'resolving';
     playSfx('tick');
     render();
-    
-    // Aguarda 2 segundos antes de revelar o resultado
-    setTimeout(() => {
-        resolveRound(statKey);
-    }, 2000);
+    setTimeout(() => resolveRound(statKey), 2000);
 }
 
 function resolveRound(statKey) {
     const pVal = playerDeck[0].stats[statKey];
     const cVal = cpuDeck[0].stats[statKey];
-    
-    // Todos os atributos o maior vence, exceto custo onde menor é melhor (regra assumida)
-    const isLowerBetter = statKey === 'cost'; 
-
+    const isLowerBetter = statKey === 'cost';
     if (pVal === cVal) {
-        roundWinner = 'draw';
-        playSfx('draw');
+        roundWinner = 'draw'; playSfx('draw');
     } else if (isLowerBetter) {
         roundWinner = pVal < cVal ? 'player' : 'cpu';
         playSfx(roundWinner === 'player' ? 'win' : 'lose');
@@ -368,7 +766,6 @@ function resolveRound(statKey) {
         roundWinner = pVal > cVal ? 'player' : 'cpu';
         playSfx(roundWinner === 'player' ? 'win' : 'lose');
     }
-    
     gameState = 'result';
     render();
 }
@@ -377,216 +774,444 @@ function nextRound() {
     playSfx('click');
     const pCard = playerDeck.shift();
     const cCard = cpuDeck.shift();
-    
-    if (roundWinner === 'player') {
-        playerDeck.push(pCard, cCard, ...tiedCards);
-        tiedCards = [];
-        turn = 'player';
-    } else if (roundWinner === 'cpu') {
-        cpuDeck.push(cCard, pCard, ...tiedCards);
-        tiedCards = [];
-        turn = 'cpu';
-    } else { // draw
-        tiedCards.push(pCard, cCard);
-    }
-
+    if (roundWinner === 'player')   { playerDeck.push(pCard, cCard, ...tiedCards); tiedCards = []; turn = 'player'; }
+    else if (roundWinner === 'cpu') { cpuDeck.push(cCard, pCard, ...tiedCards);   tiedCards = []; turn = 'cpu';    }
+    else                            { tiedCards.push(pCard, cCard); }
     selectedStat = null;
-    roundWinner = null;
-
+    roundWinner  = null;
     if (playerDeck.length === 0 || cpuDeck.length === 0) {
         gameState = 'gameover';
     } else {
         gameState = 'playing';
-        if (turn === 'cpu') {
-            setTimeout(cpuPlayRound, 1500);
-        }
+        if (turn === 'cpu') setTimeout(cpuPlayRound, 1500);
     }
     render();
 }
 
 function cpuPlayRound() {
     if (gameState !== 'playing' || turn !== 'cpu' || cpuDeck.length === 0) return;
-    
     const card = cpuDeck[0];
-    let bestStat = 'maxTemp';
-    let maxRel = -1;
-    
-    // Simple AI: pick stat with highest normalized value (rough approximation)
+    let bestStat = 'maxTemp', maxRel = -1;
     const maxPossibles = { lifetime: 100, cost: 100, impact: 100, resistance: 100, maxTemp: 4000 };
     Object.keys(card.stats).forEach(stat => {
-        let val = card.stats[stat];
-        if(stat === 'cost') val = 100 - val; // invert cost for logic
-        let relative = val / maxPossibles[stat];
-        if (relative > maxRel) {
-            maxRel = relative;
-            bestStat = stat;
-        }
+        const val = stat === 'cost' ? 100 - card.stats[stat] : card.stats[stat];
+        const rel = val / maxPossibles[stat];
+        if (rel > maxRel) { maxRel = rel; bestStat = stat; }
     });
-
     selectedStat = bestStat;
-    
-    // Inicia suspense
-    gameState = 'resolving';
+    gameState    = 'resolving';
     playSfx('tick');
     render();
-
-    // Aguarda 2 segundos antes de revelar o resultado
-    setTimeout(() => {
-        resolveRound(bestStat);
-    }, 2000);
+    setTimeout(() => resolveRound(bestStat), 2000);
 }
 
-// --- RENDERING ---
+// ── RENDERIZAÇÃO ──────────────────────────────────────────────────────────────
 function render() {
     const app = document.getElementById('app');
-    
-    if (gameState === 'start') {
-        app.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center text-center">
-                <i data-lucide="rocket" class="w-20 h-20 text-[#8DC63F] mb-6 animate-bounce"></i>
-                <h1 class="text-5xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400">
-                    ${t('title')}
-                </h1>
-                <h2 class="text-2xl font-semibold mb-8 text-blue-300">${t('subtitle')}</h2>
-                <p class="max-w-md text-slate-400 mb-8">${t('desc')}</p>
-                <button onclick="startGame()" class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-xl py-4 px-10 rounded-full shadow-[0_0_15px_rgba(141,198,63,0.5)] transition-all transform hover:scale-105">
-                    ${t('start')}
-                </button>
-            </div>
-        `;
-    } 
-    else if (gameState === 'gameover') {
-        const playerWon = playerDeck.length > 0;
-        app.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center text-center">
-                <i data-lucide="trophy" class="w-24 h-24 mb-6 ${playerWon ? 'text-yellow-400' : 'text-slate-500'}"></i>
-                <h1 class="text-5xl font-black mb-4">${playerWon ? t('youWonGame') : t('gameOver')}</h1>
-                <p class="text-xl text-slate-400 mb-8">${playerWon ? t('winDesc') : t('loseDesc')}</p>
-                <div class="flex gap-8 mb-12 text-2xl font-bold">
-                    <span class="text-blue-400">${t('player')}: ${playerDeck.length}</span>
-                    <span class="text-red-400">${t('cpu')}: ${cpuDeck.length}</span>
-                </div>
-                <button onclick="startGame()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-3 px-8 rounded-full transition-all">
-                    <i data-lucide="refresh-cw" class="w-5 h-5"></i> ${t('rematch')}
-                </button>
-            </div>
-        `;
-    }
-    else {
-        app.innerHTML = `
-            <!-- Header -->
-            <header class="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
-                <div class="flex flex-col">
-                    <span class="text-sm text-slate-400 uppercase tracking-wide">${t('player')}</span>
-                    <span class="text-3xl font-bold text-blue-400">${playerDeck.length} <span class="text-lg text-slate-500">${t('cards')}</span></span>
-                </div>
-                <div class="text-center">
-                    <h1 class="text-xl md:text-2xl font-black text-[#8DC63F] tracking-widest uppercase hidden md:block">${t('title')}</h1>
-                    <div class="text-sm font-medium text-slate-400 mt-1">
-                        ${tiedCards.length > 0 ? `<span class="text-yellow-400 animate-pulse">${t('drawAccum')}: ${tiedCards.length}!</span>` : ''}
-                    </div>
-                </div>
-                <div class="flex flex-col text-right">
-                    <span class="text-sm text-slate-400 uppercase tracking-wide">${t('cpu')}</span>
-                    <span class="text-3xl font-bold text-red-400">${cpuDeck.length} <span class="text-lg text-slate-500">${t('cards')}</span></span>
-                </div>
-            </header>
+    _renderUserHeader();
 
-            <!-- Board -->
-            <main class="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
-                <!-- Player Card -->
-                <div class="flex flex-col items-center">
-                    <h3 class="mb-4 text-xl font-semibold text-blue-300">${t('yourCard')}</h3>
-                    ${getCardHTML(playerDeck[0], false, gameState === 'result' ? roundWinner === 'player' : null, gameState === 'playing' && turn === 'player')}
-                </div>
+    if      (appMode === 'loading')  app.innerHTML = _screenLoading();
+    else if (appMode === 'auth')     app.innerHTML = _screenAuth();
+    else if (appMode === 'nickname') app.innerHTML = _screenNickname();
+    else if (appMode === 'lobby')    app.innerHTML = _screenLobby();
+    else if (appMode === 'game')     _renderGame(app);
 
-                <!-- Center Panel -->
-                <div class="flex flex-col items-center justify-center w-full max-w-xs text-center order-first lg:order-none mb-4 lg:mb-0">
-                    ${gameState === 'playing' ? `
-                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full transition-all">
-                            <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
-                            <h3 class="text-xl font-bold mb-2">${turn === 'player' ? t('yourTurn') : t('cpuTurn')}</h3>
-                            <p class="text-slate-400 text-sm">${turn === 'player' ? t('clickStat') : t('cpuThinking')}</p>
-                        </div>
-                    ` : gameState === 'resolving' ? `
-                        <div class="bg-slate-800 p-6 rounded-2xl border border-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.3)] w-full flex flex-col items-center transform scale-105 transition-all">
-                            <i data-lucide="loader" class="w-12 h-12 mx-auto mb-4 text-yellow-400 animate-spin"></i>
-                            <h3 class="text-xl font-black mb-2 text-white">${t('comparing')}</h3>
-                            <p class="text-yellow-400 font-bold text-lg animate-pulse uppercase tracking-wider">${t('stats', selectedStat)}</p>
-                        </div>
-                    ` : `
-                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center transition-all">
-                            <h3 class="text-xl font-black mb-2 text-white">
-                                ${roundWinner === 'player' ? t('youWonRound') : roundWinner === 'cpu' ? t('cpuWonRound') : t('roundDraw')}
-                            </h3>
-                            <p class="text-yellow-400 font-bold mb-6">${selectedStat ? t('stats', selectedStat) : ''}</p>
-                            <button onclick="nextRound()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 w-full">
-                                ${t('nextRound')}
-                            </button>
-                        </div>
-                    `}
-                </div>
-
-                <!-- CPU Card -->
-                <div class="flex flex-col items-center">
-                    <h3 class="mb-4 text-xl font-semibold text-red-300">${t('cpuCard')}</h3>
-                    ${getCardHTML(cpuDeck[0], gameState === 'playing' || gameState === 'resolving', gameState === 'result' ? roundWinner === 'cpu' : null, false)}
-                </div>
-            </main>
-        `;
-    }
-    
-    lucide.createIcons(); // Initialize icons
+    lucide.createIcons();
 }
 
-function getCardHTML(card, isHidden, isWinner, isActive) {
-    if (!card) return '';
-    
-    if (isHidden) {
-        return `
-            <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300">
-                <div class="absolute inset-0 opacity-20 card-hidden-bg"></div>
-                <i data-lucide="rocket" class="w-16 h-16 text-blue-300 mb-4 opacity-80"></i>
-                <h3 class="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">${t('title').replace(' ', '<br/>')}</h3>
-            </div>
-        `;
+function _renderUserHeader() {
+    const el = document.getElementById('user-header');
+    if (!el) return;
+    if (currentProfile) {
+        el.innerHTML = `
+            <button onclick="signOut()" title="${currentLang === 'pt' ? 'Sair' : 'Sign out'}"
+                class="flex items-center gap-2 bg-slate-800 hover:bg-red-900/40 text-sm text-slate-300 hover:text-red-300
+                       px-3 py-1.5 rounded-full border border-slate-600 hover:border-red-700 transition-colors">
+                <i data-lucide="user" class="w-4 h-4 text-[#8DC63F]"></i>
+                <span class="max-w-[90px] truncate font-semibold">${currentProfile.nickname}</span>
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            </button>`;
+        el.classList.remove('hidden');
+    } else {
+        el.innerHTML = '';
+        el.classList.add('hidden');
     }
+}
 
-    const borderClass = isWinner === true ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105' : 
-                        isWinner === false ? 'border-gray-500 opacity-80' : 'border-[#8DC63F] shadow-lg';
+function _screenLoading() {
+    return `<div class="flex-1 flex flex-col items-center justify-center gap-4">
+        <i data-lucide="loader" class="w-12 h-12 text-[#8DC63F] animate-spin"></i>
+        <p class="text-slate-400">${t('loading')}</p>
+    </div>`;
+}
+
+function _screenAuth() {
+    return `
+    <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+        <i data-lucide="rocket" class="w-20 h-20 text-[#8DC63F] mb-6 animate-bounce"></i>
+        <h1 class="text-5xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400">${t('title')}</h1>
+        <h2 class="text-2xl font-semibold mb-4 text-blue-300">${t('subtitle')}</h2>
+        <p class="max-w-md text-slate-400 mb-10 text-sm leading-relaxed">${t('loginDesc')}</p>
+        <button onclick="signInWithGoogle()"
+            class="flex items-center gap-3 bg-white hover:bg-gray-100 text-gray-800 font-bold text-lg py-4 px-8 rounded-full
+                   shadow-[0_0_20px_rgba(141,198,63,0.3)] transition-all transform hover:scale-105 border-2 border-[#8DC63F]">
+            <svg class="w-6 h-6" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            ${t('loginBtn')}
+        </button>
+    </div>`;
+}
+
+function _screenNickname() {
+    return `
+    <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+        <i data-lucide="user-check" class="w-16 h-16 text-[#8DC63F] mb-6"></i>
+        <h1 class="text-3xl font-black mb-2">${t('nicknameTitle')}</h1>
+        <p class="text-slate-400 mb-8">${t('nicknameDesc')}</p>
+        <div class="flex flex-col gap-3 w-full max-w-xs">
+            <input id="nickname-input" type="text" maxlength="20"
+                placeholder="${t('nicknamePlaceholder')}"
+                class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 focus:border-[#8DC63F]
+                       focus:outline-none text-white text-center text-lg font-bold"
+                onkeydown="if(event.key==='Enter') saveNickname()">
+            <p id="nickname-error" class="text-red-400 text-sm hidden"></p>
+            <button onclick="saveNickname()"
+                class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold py-3 px-8 rounded-full transition-all hover:scale-105">
+                ${t('nicknameSave')}
+            </button>
+        </div>
+    </div>`;
+}
+
+function _screenLobby() {
+    const roomsHTML = availableRooms.length === 0
+        ? `<p class="text-slate-500 text-center py-8 italic">${t('noRooms')}</p>`
+        : availableRooms.map(room => `
+            <div class="flex justify-between items-center bg-slate-700/60 rounded-xl px-4 py-3
+                        border border-slate-600 hover:border-[#8DC63F] transition-colors">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="user" class="w-4 h-4 text-[#8DC63F] shrink-0"></i>
+                    <span class="font-bold text-white truncate max-w-[140px]">${room.player1_nickname}</span>
+                </div>
+                <button onclick="joinRoom('${room.id}')"
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm py-2 px-4
+                           rounded-lg transition-all hover:scale-105 shrink-0">
+                    ${t('joinRoom')}
+                </button>
+            </div>`).join('');
 
     return `
-        <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${borderClass} flex flex-col overflow-hidden transition-all duration-300 relative select-none">
-            <!-- Header -->
-            <div class="h-[30%] relative flex items-center justify-center p-2">
-                <div class="absolute inset-0 ${card.color} opacity-90"></div>
-                <div class="relative z-10 text-center w-full px-1">
-                    <i data-lucide="${card.icon}" class="w-10 h-10 mx-auto text-white mb-1 drop-shadow-md"></i>
-                    <h2 class="font-bold text-white text-[0.95rem] leading-tight drop-shadow-md">${card.title[currentLang]}</h2>
-                    <p class="text-[0.65rem] text-white/80 mt-1 font-semibold tracking-wider uppercase">${card.type[currentLang]}</p>
+    <div class="flex-1 flex flex-col items-center py-8 px-4 w-full">
+        <div class="w-full max-w-lg">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400">
+                    ${t('title')}
+                </h1>
+                <p class="text-blue-300 font-semibold">${t('subtitle')}</p>
+            </div>
+
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 mb-6 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-[#8DC63F]"></i>
+                        ${t('waitingRooms')}
+                    </h2>
+                    <span class="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded-full">
+                        ${availableRooms.length} ${currentLang === 'pt' ? 'salas' : 'rooms'}
+                    </span>
+                </div>
+                <div class="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
+                    ${roomsHTML}
                 </div>
             </div>
 
-            <!-- Stats -->
-            <div class="bg-[#4169E1] flex-1 flex flex-col text-sm border-t-2 border-[#2b4cba]">
-                ${Object.keys(card.stats).map(key => {
-                    const isSel = selectedStat === key;
-                    const suffix = key === 'maxTemp' ? ' °C' : '';
-                    return `
-                        <div onclick="handleStatSelect('${key}')" class="stat-row flex justify-between items-center px-4 py-2 flex-1 border-b border-blue-400/30 text-white ${isActive ? 'cursor-pointer' : ''} transition-colors ${isSel ? 'stat-selected shadow-inner' : ''}">
-                            <span>${t('stats', key)}</span>
-                            <span class="font-bold">${card.stats[key]}${suffix}</span>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-
-            <!-- Desc -->
-            <div class="h-[25%] bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify border-t-2 border-[#2b4cba]">
-                ${card.desc[currentLang]}
+            <div class="flex flex-col gap-3">
+                <button onclick="createRoom()"
+                    class="w-full bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-lg py-4 rounded-xl
+                           transition-all hover:scale-105 flex items-center justify-center gap-2
+                           shadow-[0_0_15px_rgba(141,198,63,0.3)]">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    ${t('createRoom')}
+                </button>
+                <button onclick="playOffline()"
+                    class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-3 rounded-xl
+                           transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4"></i>
+                    ${t('playOffline')}
+                </button>
             </div>
         </div>
-    `;
+    </div>`;
+}
+
+function _renderGame(app) {
+    // Aguardando jogador 2 entrar
+    if (!isOfflineMode && currentRoom && currentRoom.status === 'waiting') {
+        app.innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+            <i data-lucide="loader" class="w-16 h-16 text-[#8DC63F] animate-spin mb-6"></i>
+            <h1 class="text-3xl font-black mb-3">${t('waitingTitle')}</h1>
+            <p class="text-slate-400 mb-8 max-w-sm">${t('waitingDesc')}</p>
+            <div class="bg-slate-800 rounded-xl px-6 py-3 mb-8 border border-slate-600">
+                <p class="text-xs text-slate-400 mb-1">${t('roomCode')}</p>
+                <p class="font-mono text-lg font-bold text-[#8DC63F] tracking-widest">
+                    ${currentRoom.id.substring(0, 8).toUpperCase()}
+                </p>
+            </div>
+            <button onclick="leaveRoom()"
+                class="bg-red-900/50 hover:bg-red-800 text-red-300 font-semibold py-2 px-6 rounded-full
+                       border border-red-700 transition-colors">
+                ${t('cancelWait')}
+            </button>
+        </div>`;
+        return;
+    }
+
+    // Oponente abandonou a sala
+    if (!isOfflineMode && currentRoom && currentRoom.status === 'finished' && gameState !== 'gameover') {
+        app.innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+            <i data-lucide="wifi-off" class="w-16 h-16 text-red-400 mb-6"></i>
+            <h1 class="text-3xl font-black mb-3">
+                ${currentLang === 'pt' ? 'Oponente saiu da partida' : 'Opponent left the match'}
+            </h1>
+            <p class="text-slate-400 mb-8">
+                ${currentLang === 'pt' ? 'A sala foi encerrada.' : 'The room was closed.'}
+            </p>
+            <button onclick="goToLobby()"
+                class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold py-3 px-8 rounded-full
+                       transition-all hover:scale-105">
+                ${currentLang === 'pt' ? 'Voltar ao Lobby' : 'Back to Lobby'}
+            </button>
+        </div>`;
+        return;
+    }
+
+    // Tela inicial (modo offline)
+    if (gameState === 'start') {
+        app.innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center text-center">
+            <i data-lucide="rocket" class="w-20 h-20 text-[#8DC63F] mb-6 animate-bounce"></i>
+            <h1 class="text-5xl md:text-6xl font-black mb-4 text-transparent bg-clip-text
+                       bg-gradient-to-r from-[#8DC63F] to-emerald-400">${t('title')}</h1>
+            <h2 class="text-2xl font-semibold mb-8 text-blue-300">${t('subtitle')}</h2>
+            <p class="max-w-md text-slate-400 mb-8">${t('desc')}</p>
+            <div class="flex gap-4 flex-wrap justify-center">
+                <button onclick="startGame()"
+                    class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold text-xl py-4 px-10 rounded-full
+                           shadow-[0_0_15px_rgba(141,198,63,0.5)] transition-all transform hover:scale-105">
+                    ${t('start')}
+                </button>
+                <button onclick="goToLobby()"
+                    class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xl py-4 px-8 rounded-full
+                           transition-all flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5"></i> ${t('lobby')}
+                </button>
+            </div>
+        </div>`;
+        return;
+    }
+
+    // Fim de jogo
+    if (gameState === 'gameover') {
+        const playerWon = isOfflineMode
+            ? playerDeck.length > 0
+            : currentRoom?.winner_id === currentUser?.id;
+        const oppNick = _opponentNick();
+        app.innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center text-center">
+            <i data-lucide="trophy" class="w-24 h-24 mb-6 ${playerWon ? 'text-yellow-400' : 'text-slate-500'}"></i>
+            <h1 class="text-5xl font-black mb-4">${playerWon ? t('youWonGame') : t('gameOver')}</h1>
+            <p class="text-xl text-slate-400 mb-8">
+                ${playerWon
+                    ? t('winDesc')
+                    : (isOfflineMode ? t('loseDesc') : `${oppNick} ${currentLang === 'pt' ? 'venceu!' : 'won!'}`)}
+            </p>
+            <div class="flex gap-8 mb-12 text-2xl font-bold">
+                <span class="text-blue-400">${_playerNick()}: ${playerDeck.length}</span>
+                <span class="text-red-400">${oppNick}: ${cpuDeck.length}</span>
+            </div>
+            <div class="flex gap-4 flex-wrap justify-center">
+                ${isOfflineMode ? `
+                <button onclick="startGame()"
+                    class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg
+                           py-3 px-8 rounded-full transition-all">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i> ${t('rematch')}
+                </button>` : ''}
+                <button onclick="${isOfflineMode ? 'goToLobby()' : 'leaveRoom()'}"
+                    class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-lg
+                           py-3 px-8 rounded-full transition-all">
+                    <i data-lucide="home" class="w-5 h-5"></i> ${t('lobby')}
+                </button>
+            </div>
+        </div>`;
+        return;
+    }
+
+    // Tabuleiro do jogo (playing / resolving / result)
+    const oppNick     = _opponentNick();
+    const canClickNext = _canClickNext();
+    const onNextRound  = isOfflineMode ? 'nextRound()' : 'mpNextRound()';
+    const statFn       = isOfflineMode
+        ? (k) => `handleStatSelect('${k}')`
+        : (k) => `mpHandleStatSelect('${k}')`;
+
+    app.innerHTML = `
+    <header class="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
+        <div class="flex flex-col">
+            <span class="text-sm text-slate-400 uppercase tracking-wide">${_playerNick()}</span>
+            <span class="text-3xl font-bold text-blue-400">${playerDeck.length}
+                <span class="text-lg text-slate-500">${t('cards')}</span>
+            </span>
+        </div>
+        <div class="text-center">
+            <h1 class="text-xl md:text-2xl font-black text-[#8DC63F] tracking-widest uppercase hidden md:block">${t('title')}</h1>
+            <div class="text-sm font-medium text-slate-400 mt-1">
+                ${tiedCards.length > 0
+                    ? `<span class="text-yellow-400 animate-pulse">${t('drawAccum')}: ${tiedCards.length}!</span>`
+                    : ''}
+            </div>
+            ${!isOfflineMode ? `
+            <button onclick="leaveRoom()"
+                class="text-xs text-red-400 hover:text-red-300 mt-1 transition-colors">
+                ${t('leave')}
+            </button>` : ''}
+        </div>
+        <div class="flex flex-col text-right">
+            <span class="text-sm text-slate-400 uppercase tracking-wide">${oppNick}</span>
+            <span class="text-3xl font-bold text-red-400">${cpuDeck.length}
+                <span class="text-lg text-slate-500">${t('cards')}</span>
+            </span>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+        <div class="flex flex-col items-center">
+            <h3 class="mb-4 text-xl font-semibold text-blue-300">${t('yourCard')}</h3>
+            ${getCardHTML(playerDeck[0], false,
+                gameState === 'result' ? roundWinner === 'player' : null,
+                gameState === 'playing' && turn === 'player',
+                statFn)}
+        </div>
+
+        <div class="flex flex-col items-center justify-center w-full max-w-xs text-center order-first lg:order-none mb-4 lg:mb-0">
+            ${gameState === 'playing' ? `
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full transition-all">
+                <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
+                <h3 class="text-xl font-bold mb-2">${turn === 'player' ? t('yourTurn') : t('cpuTurn')}</h3>
+                <p class="text-slate-400 text-sm">${turn === 'player' ? t('clickStat') : t('cpuThinking')}</p>
+            </div>
+            ` : gameState === 'resolving' ? `
+            <div class="bg-slate-800 p-6 rounded-2xl border border-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.3)] w-full flex flex-col items-center transform scale-105 transition-all">
+                <i data-lucide="loader" class="w-12 h-12 mx-auto mb-4 text-yellow-400 animate-spin"></i>
+                <h3 class="text-xl font-black mb-2 text-white">${t('comparing')}</h3>
+                <p class="text-yellow-400 font-bold text-lg animate-pulse uppercase tracking-wider">${t('stats', selectedStat)}</p>
+            </div>
+            ` : `
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center transition-all">
+                <h3 class="text-xl font-black mb-2 text-white">
+                    ${roundWinner === 'player' ? t('youWonRound') : roundWinner === 'cpu' ? t('cpuWonRound') : t('roundDraw')}
+                </h3>
+                <p class="text-yellow-400 font-bold mb-6">${selectedStat ? t('stats', selectedStat) : ''}</p>
+                ${canClickNext ? `
+                <button onclick="${onNextRound}"
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full
+                           shadow-lg transition-transform hover:scale-105 active:scale-95 w-full">
+                    ${t('nextRound')}
+                </button>` : `
+                <p class="text-slate-400 text-sm animate-pulse">${t('waitingOpponent')}</p>`}
+            </div>
+            `}
+        </div>
+
+        <div class="flex flex-col items-center">
+            <h3 class="mb-4 text-xl font-semibold text-red-300">${oppNick}</h3>
+            ${getCardHTML(cpuDeck[0],
+                gameState === 'playing' || gameState === 'resolving',
+                gameState === 'result' ? roundWinner === 'cpu' : null,
+                false,
+                statFn)}
+        </div>
+    </main>`;
+}
+
+function _playerNick() {
+    return isOfflineMode ? t('player') : (currentProfile?.nickname ?? t('player'));
+}
+
+function _opponentNick() {
+    if (isOfflineMode) return t('cpu');
+    return isPlayer1
+        ? (currentRoom?.player2_nickname ?? '???')
+        : (currentRoom?.player1_nickname ?? '???');
+}
+
+function _canClickNext() {
+    if (isOfflineMode) return true;
+    if (!currentRoom) return false;
+    const rw = currentRoom.round_winner;
+    if (!rw) return false;
+    return rw === 'draw'
+        ? isPlayer1
+        : (rw === 'player1' ? isPlayer1 : !isPlayer1);
+}
+
+// ── CARD HTML ─────────────────────────────────────────────────────────────────
+function getCardHTML(card, isHidden, isWinner, isActive, statFn) {
+    if (!card) return '';
+
+    if (isHidden) {
+        return `
+        <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl
+                    border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center
+                    relative overflow-hidden transition-all duration-300">
+            <div class="absolute inset-0 opacity-20 card-hidden-bg"></div>
+            <i data-lucide="rocket" class="w-16 h-16 text-blue-300 mb-4 opacity-80"></i>
+            <h3 class="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">
+                ${t('title').replace(' ', '<br/>')}
+            </h3>
+        </div>`;
+    }
+
+    const borderClass = isWinner === true  ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105'
+                      : isWinner === false ? 'border-gray-500 opacity-80'
+                      :                     'border-[#8DC63F] shadow-lg';
+
+    const statsRows = Object.keys(card.stats).map(key => {
+        const isSel      = selectedStat === key;
+        const suffix     = key === 'maxTemp' ? ' °C' : '';
+        const clickAttr  = isActive && statFn ? `onclick="${statFn(key)}"` : '';
+        return `
+        <div ${clickAttr}
+             class="stat-row flex justify-between items-center px-4 py-2 flex-1 border-b border-blue-400/30
+                    text-white ${isActive ? 'cursor-pointer' : ''} transition-colors ${isSel ? 'stat-selected shadow-inner' : ''}">
+            <span>${t('stats', key)}</span>
+            <span class="font-bold">${card.stats[key]}${suffix}</span>
+        </div>`;
+    }).join('');
+
+    return `
+    <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${borderClass}
+                flex flex-col overflow-hidden transition-all duration-300 relative select-none">
+        <div class="h-[30%] relative flex items-center justify-center p-2">
+            <div class="absolute inset-0 ${card.color} opacity-90"></div>
+            <div class="relative z-10 text-center w-full px-1">
+                <i data-lucide="${card.icon}" class="w-10 h-10 mx-auto text-white mb-1 drop-shadow-md"></i>
+                <h2 class="font-bold text-white text-[0.95rem] leading-tight drop-shadow-md">${card.title[currentLang]}</h2>
+                <p class="text-[0.65rem] text-white/80 mt-1 font-semibold tracking-wider uppercase">${card.type[currentLang]}</p>
+            </div>
+        </div>
+        <div class="bg-[#4169E1] flex-1 flex flex-col text-sm border-t-2 border-[#2b4cba]">
+            ${statsRows}
+        </div>
+        <div class="h-[25%] bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify border-t-2 border-[#2b4cba]">
+            ${card.desc[currentLang]}
+        </div>
+    </div>`;
 }
 
 // --- NEW FEATURES LOGIC (WEB AUDIO API SYNTHESIZER, MODAL, PARTICLES) ---
@@ -737,23 +1362,19 @@ function playSfx(type) {
     }
 }
 
-// --- 2. Info Modal ---
+
+// --- Info Modal ---
 function toggleInfo() {
-    const modal = document.getElementById('info-modal');
+    const modal   = document.getElementById('info-modal');
     const content = document.getElementById('info-modal-content');
     if (modal.classList.contains('hidden')) {
         modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-        }, 10);
+        setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         playSfx('click');
     } else {
         modal.classList.add('opacity-0');
         content.classList.add('scale-95');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
+        setTimeout(() => modal.classList.add('hidden'), 300);
         playSfx('click');
     }
 }
@@ -843,6 +1464,7 @@ function connectParticles() {
         }
     }
 }
+
 
 // Start
 init();
