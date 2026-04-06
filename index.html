@@ -384,6 +384,23 @@ function updateInfoTexts() {
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 async function initSupabase() {
+    if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+        document.getElementById('app').innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+                <i data-lucide="alert-triangle" class="w-16 h-16 text-yellow-400 mb-4"></i>
+                <h2 class="text-2xl font-black text-yellow-400 mb-2">Configuração necessária</h2>
+                <p class="text-slate-300 max-w-md text-sm leading-relaxed">
+                    Abra <code class="bg-slate-700 px-1 rounded">index.html</code> e substitua
+                    <code class="bg-slate-700 px-1 rounded">YOUR_SUPABASE_URL</code> e
+                    <code class="bg-slate-700 px-1 rounded">YOUR_SUPABASE_ANON_KEY</code>
+                    pelos valores do seu projeto Supabase.<br><br>
+                    Consulte o arquivo <code class="bg-slate-700 px-1 rounded">supabase-schema.sql</code>
+                    para o guia completo de configuração.
+                </p>
+            </div>`;
+        lucide.createIcons();
+        return;
+    }
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Keep auth state in sync
@@ -484,6 +501,17 @@ function _showFormError(id, msg) {
     if (el) { el.textContent = msg; el.classList.remove('hidden'); }
 }
 
+function _showToast(msg) {
+    const existing = document.getElementById('_toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = '_toast';
+    toast.textContent = msg;
+    toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-red-800 border border-red-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl transition-opacity duration-500';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+}
+
 // ── LOBBY ─────────────────────────────────────────────────────────────────────
 async function loadRooms() {
     const { data } = await sb
@@ -549,7 +577,7 @@ async function joinRoom(roomId) {
         .single();
 
     if (error || !data) {
-        alert(currentLang === 'pt' ? 'Sala não disponível. Tente outra.' : 'Room not available. Try another.');
+        _showToast(currentLang === 'pt' ? 'Sala não disponível. Tente outra.' : 'Room not available. Try another.');
         await loadRooms();
         return;
     }

@@ -17,7 +17,8 @@
 -- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "super-trunfo-profiles" (
     id         UUID        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-    nickname   TEXT        NOT NULL UNIQUE,
+    nickname   TEXT        NOT NULL UNIQUE
+                           CHECK (char_length(nickname) BETWEEN 2 AND 20),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
