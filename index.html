@@ -103,10 +103,6 @@ const i18n = {
         pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais, este jogo visa construir uma intuição rápida sobre as propriedades de diferentes classes de materiais (Cerâmicas, Metais, Polímeros e Compósitos). Ao comparar atributos, o aluno internaliza a correlação entre estrutura, propriedades e aplicação real — como o fato de cerâmicas suportarem temperaturas extremas (refratários), ou polímeros terem menor custo e menor resistência.",
         loginDesc: "Faça login com sua conta Google para jogar com outros engenheiros de materiais online!",
         loginBtn: "Entrar com Google",
-        nicknameTitle: "Escolha seu Apelido",
-        nicknameDesc: "Como você quer ser chamado no jogo?",
-        nicknamePlaceholder: "Seu nickname...",
-        nicknameSave: "Salvar e Entrar",
         waitingRooms: "Salas Disponíveis",
         createRoom: "Criar Nova Sala",
         joinRoom: "Entrar",
@@ -141,10 +137,6 @@ const i18n = {
         pedagogyDesc: "Developed for Materials Engineering students, this game aims to build quick intuition about the properties of different material classes (Ceramics, Metals, Polymers, and Composites). By comparing attributes, students internalize the correlation between structure, properties and real-world application — such as ceramics withstanding extreme temperatures (refractories), or polymers having lower cost and lower resistance.",
         loginDesc: "Sign in with your Google account to play against other materials engineers online!",
         loginBtn: "Sign in with Google",
-        nicknameTitle: "Choose your Nickname",
-        nicknameDesc: "What do you want to be called in the game?",
-        nicknamePlaceholder: "Your nickname...",
-        nicknameSave: "Save and Play",
         waitingRooms: "Available Rooms",
         createRoom: "Create New Room",
         joinRoom: "Join",
@@ -331,7 +323,7 @@ const MASTER_DECK = [
 
 
 // ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────────────
-let appMode      = 'loading'; // loading | auth | nickname | lobby | game
+let appMode      = 'loading'; // loading | auth | lobby | game
 let sb           = null;      // Supabase client instance
 let currentUser  = null;
 let currentProfile = null;
@@ -384,6 +376,7 @@ function updateInfoTexts() {
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 async function initSupabase() {
+    render(); // show loading spinner immediately
     if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
         document.getElementById('app').innerHTML = `
             <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
@@ -455,45 +448,30 @@ function _cleanupChannels() {
     if (roomChannel)  { roomChannel.unsubscribe();  roomChannel  = null; }
 }
 
-// ── PERFIL / NICKNAME ─────────────────────────────────────────────────────────
+// ── PERFIL ─────────────────────────────────────────────────────────────────────
 async function loadProfile() {
-    const { data } = await sb
-        .from(TBL_PROFILES)
-        .select('*')
-        .eq('id', currentUser.id)
-        .maybeSingle();
-    currentProfile = data;
-    if (!currentProfile) {
-        appMode = 'nickname';
-        render();
-    } else {
+    try {
+        const { data } = await sb
+            .from(TBL_PROFILES)
+            .select('*')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+        currentProfile = data;
+        if (!currentProfile) {
+            // Auto-create profile from Google account name
+            const meta = currentUser.user_metadata ?? {};
+            const nickname = (meta.full_name || meta.name || currentUser.email || 'Jogador').substring(0, 20);
+            const { data: created } = await sb.from(TBL_PROFILES).upsert({ id: currentUser.id, nickname }).select().maybeSingle();
+            currentProfile = created ?? { id: currentUser.id, nickname };
+        }
         appMode = 'lobby';
         render();
         await loadRooms();
+    } catch (err) {
+        console.error('loadProfile error:', err);
+        appMode = 'auth';
+        render();
     }
-}
-
-async function saveNickname() {
-    const input = document.getElementById('nickname-input');
-    if (!input) return;
-    const nickname = input.value.trim();
-    if (nickname.length < 2 || nickname.length > 20) {
-        _showFormError('nickname-error', currentLang === 'pt'
-            ? 'Nick deve ter entre 2 e 20 caracteres.'
-            : 'Nickname must be 2–20 characters.');
-        return;
-    }
-    const { error } = await sb.from(TBL_PROFILES).upsert({ id: currentUser.id, nickname });
-    if (error) {
-        _showFormError('nickname-error', currentLang === 'pt'
-            ? 'Nickname já em uso. Tente outro.'
-            : 'Nickname already taken. Try another.');
-        return;
-    }
-    currentProfile = { id: currentUser.id, nickname };
-    appMode = 'lobby';
-    render();
-    await loadRooms();
 }
 
 function _showFormError(id, msg) {
@@ -840,7 +818,6 @@ function render() {
 
     if      (appMode === 'loading')  app.innerHTML = _screenLoading();
     else if (appMode === 'auth')     app.innerHTML = _screenAuth();
-    else if (appMode === 'nickname') app.innerHTML = _screenNickname();
     else if (appMode === 'lobby')    app.innerHTML = _screenLobby();
     else if (appMode === 'game')     _renderGame(app);
 
@@ -891,27 +868,6 @@ function _screenAuth() {
             </svg>
             ${t('loginBtn')}
         </button>
-    </div>`;
-}
-
-function _screenNickname() {
-    return `
-    <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
-        <i data-lucide="user-check" class="w-16 h-16 text-[#8DC63F] mb-6"></i>
-        <h1 class="text-3xl font-black mb-2">${t('nicknameTitle')}</h1>
-        <p class="text-slate-400 mb-8">${t('nicknameDesc')}</p>
-        <div class="flex flex-col gap-3 w-full max-w-xs">
-            <input id="nickname-input" type="text" maxlength="20"
-                placeholder="${t('nicknamePlaceholder')}"
-                class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 focus:border-[#8DC63F]
-                       focus:outline-none text-white text-center text-lg font-bold"
-                onkeydown="if(event.key==='Enter') saveNickname()">
-            <p id="nickname-error" class="text-red-400 text-sm hidden"></p>
-            <button onclick="saveNickname()"
-                class="bg-[#8DC63F] hover:bg-green-500 text-slate-900 font-bold py-3 px-8 rounded-full transition-all hover:scale-105">
-                ${t('nicknameSave')}
-            </button>
-        </div>
     </div>`;
 }
 
