@@ -460,8 +460,10 @@ async function loadProfile() {
         if (!currentProfile) {
             // Auto-create profile from Google account name
             const meta = currentUser.user_metadata ?? {};
-            const nickname = (meta.full_name || meta.name || currentUser.email || 'Jogador').substring(0, 20);
-            const { data: created } = await sb.from(TBL_PROFILES).upsert({ id: currentUser.id, nickname }).select().maybeSingle();
+            const defaultName = currentLang === 'pt' ? 'Jogador' : 'Player';
+            const nickname = (meta.full_name || meta.name || currentUser.email || defaultName).substring(0, 20);
+            const { data: created, error: upsertError } = await sb.from(TBL_PROFILES).upsert({ id: currentUser.id, nickname }).select().maybeSingle();
+            if (upsertError) console.error('createProfile error:', upsertError);
             currentProfile = created ?? { id: currentUser.id, nickname };
         }
         appMode = 'lobby';
