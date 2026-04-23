@@ -65,9 +65,12 @@
 
 <script>
 // ============================================================
-// CONFIGURAÇÃO DO GOOGLE SHEETS
+// CONFIGURAÇÕES GLOBAIS
 // ============================================================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLCnqGNnY4I3RrtvDCpXO9Yhcz_Vmz2vC34e1EwAw7Bnf0NLFc7Qp2kAXShYrD4Zip/exec'; // COLOQUE A URL GERADA NA ETAPA 3 AQUI
+// COLE AQUI A URL NOVA QUE VOCÊ GEROU NO PASSO 3 DO GOOGLE APPS SCRIPT
+const APPS_SCRIPT_URL = 'SUA_NOVA_URL_AQUI'; 
+
+// URL do seu arquivo CSV no GitHub
 const CSV_URL = 'https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/cartas.csv';
 
 // ── TRADUÇÕES ─────────────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ const i18n = {
         winDesc: "Você dominou a ciência dos materiais!", loseDesc: "A CPU superou seus conhecimentos estruturais.",
         stats: { lifetime: "Vida Útil", cost: "Custo", impact: "Impacto Diário", resistance: "Resistência", maxTemp: "Temp. Máx." },
         infoTitle: "Sobre o Jogo", rulesTitle: "Como Funciona", pedagogyTitle: "Objetivo Pedagógico",
-        rulesDesc: "O jogo distribui 5 cartas para você e 5 para o oponente. Na sua vez, escolha o melhor atributo (para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas.",
+        rulesDesc: "O jogo distribui 5 cartas para você e 5 para o oponente. O VENCEDOR DA RODADA ganha o direito de escolher o atributo na rodada seguinte (para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas.",
         pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais para construir uma intuição rápida sobre propriedades e aplicações.",
         loginDesc: "Insira seu nome de engenheiro para entrar nas batalhas online!",
         loginBtn: "Entrar no Lobby",
@@ -124,7 +127,7 @@ const i18n = {
         winDesc: "You have mastered materials science!", loseDesc: "The CPU outsmarted your structural knowledge.",
         stats: { lifetime: "Lifetime", cost: "Cost", impact: "Daily Impact", resistance: "Resistance", maxTemp: "Max Temp." },
         infoTitle: "About the Game", rulesTitle: "How it Works", pedagogyTitle: "Pedagogical Objective",
-        rulesDesc: "The game deals 5 cards to you and 5 to the opponent. Choose the best attribute (for 'Cost', lowest wins!). The winner takes both cards.",
+        rulesDesc: "The game deals 5 cards to you and 5 to the opponent. The WINNER OF THE ROUND chooses the attribute on the next turn (for 'Cost', lowest wins!). The winner takes both cards.",
         pedagogyDesc: "Developed to build quick intuition about the properties of different material classes.",
         loginDesc: "Enter your engineer name to join the online battles!",
         loginBtn: "Enter Lobby",
@@ -149,7 +152,7 @@ const i18n = {
 let currentLang = 'pt';
 const t = (key, nestedKey) => nestedKey ? (i18n[currentLang][key]?.[nestedKey] ?? nestedKey) : (i18n[currentLang][key] ?? key);
 
-// ── BARALHO DINÂMICO ──────────────────────────────────────────────────────────
+// ── BARALHO DINÂMICO DO GITHUB ──────────────────────────────────────────────────
 let MASTER_DECK = [];
 
 async function loadDeck() {
@@ -163,7 +166,7 @@ async function loadDeck() {
             const row = rows[i].trim();
             if (row === '') continue;
             
-            const cols = row.split(';');
+            const cols = row.split(';'); // Ponto e vírgula do Excel-BR
             MASTER_DECK.push({
                 id: parseInt(cols[0]),
                 icon: cols[9] || 'box',
@@ -247,7 +250,6 @@ function _showToast(msg) {
 // ── COMUNICAÇÃO GOOGLE SHEETS (ANTI-CORS) ─────────────────────────────────────
 async function sheetPost(data) {
     try {
-        // Enviar sem cabeçalho Content-Type customizado previne o erro de CORS do Google
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(data),
@@ -840,6 +842,11 @@ function _renderGame(app) {
     const onNextRound  = isOfflineMode ? 'nextRound()' : 'mpNextRound()';
     const statFn       = isOfflineMode ? (k) => `handleStatSelect('${k}')` : (k) => `mpHandleStatSelect('${k}')`;
 
+    // Lógica para pegar a curiosidade (Descrição) da carta e mostrar no painel
+    const currentCard = playerDeck[0];
+    const funFact = currentCard ? currentCard.desc[currentLang] : '';
+    const factTitle = currentLang === 'pt' ? 'Curiosidade' : 'Fun Fact';
+
     app.innerHTML = `
     <header class="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
         <div class="flex flex-col">
@@ -861,7 +868,7 @@ function _renderGame(app) {
             <h3 class="mb-4 text-xl font-semibold text-blue-300">${t('yourCard')}</h3>
             ${getCardHTML(playerDeck[0], false, gameState === 'result' ? roundWinner === 'player' : null, gameState === 'playing' && turn === 'player', statFn)}
         </div>
-        <div class="flex flex-col items-center justify-center w-full max-w-xs text-center order-first lg:order-none mb-4 lg:mb-0">
+        <div class="flex flex-col items-center justify-center w-full max-w-sm text-center order-first lg:order-none mb-4 lg:mb-0">
             ${gameState === 'playing' ? `
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full transition-all">
                 <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
@@ -870,9 +877,14 @@ function _renderGame(app) {
             </div>
             ` : gameState === 'resolving' ? `
             <div class="bg-slate-800 p-6 rounded-2xl border border-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.3)] w-full flex flex-col items-center transform scale-105 transition-all">
-                <i data-lucide="loader" class="w-12 h-12 mx-auto mb-4 text-yellow-400 animate-spin"></i>
-                <h3 class="text-xl font-black mb-2 text-white">${t('comparing')}</h3>
-                <p class="text-yellow-400 font-bold text-lg animate-pulse uppercase tracking-wider">${t('stats', selectedStat)}</p>
+                <i data-lucide="loader" class="w-8 h-8 mx-auto mb-3 text-yellow-400 animate-spin"></i>
+                <h3 class="text-lg font-black mb-1 text-white">${t('comparing')} <span class="text-yellow-400 uppercase tracking-wider ml-1">${t('stats', selectedStat)}</span></h3>
+                
+                <div class="mt-4 pt-4 border-t border-slate-600 w-full text-center">
+                    <span class="text-xs text-blue-400 uppercase tracking-widest font-bold block mb-2"><i data-lucide="lightbulb" class="w-3 h-3 inline-block mr-1"></i>${factTitle}</span>
+                    <p class="text-slate-300 text-sm leading-relaxed italic">"${funFact}"</p>
+                </div>
+
             </div>
             ` : `
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center transition-all">
@@ -914,26 +926,24 @@ function getCardHTML(card, isHidden, isWinner, isActive, statFn) {
         const isSel = selectedStat === key;
         const suffix = key === 'maxTemp' ? ' °C' : '';
         const clickAttr = isActive && statFn ? `onclick="${statFn(key)}"` : '';
-        return `<div ${clickAttr} class="stat-row flex justify-between items-center px-4 py-2 flex-1 border-b border-blue-400/30 text-white ${isActive ? 'cursor-pointer' : ''} transition-colors ${isSel ? 'stat-selected shadow-inner' : ''}">
+        // Ajustado para ocupar melhor o espaço da carta sem a descrição
+        return `<div ${clickAttr} class="stat-row flex justify-between items-center px-4 py-3 flex-1 border-b border-blue-400/30 text-white ${isActive ? 'cursor-pointer' : ''} transition-colors ${isSel ? 'stat-selected shadow-inner' : ''}">
             <span>${t('stats', key)}</span><span class="font-bold">${card.stats[key]}${suffix}</span>
         </div>`;
     }).join('');
 
     return `
     <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-[#8DC63F] rounded-xl border-4 ${borderClass} flex flex-col overflow-hidden transition-all duration-300 relative select-none">
-        <div class="h-[30%] relative flex items-center justify-center p-2">
+        <div class="h-[35%] relative flex items-center justify-center p-2">
             <div class="absolute inset-0 ${card.color} opacity-90"></div>
             <div class="relative z-10 text-center w-full px-1">
-                <i data-lucide="${card.icon}" class="w-10 h-10 mx-auto text-white mb-1 drop-shadow-md"></i>
-                <h2 class="font-bold text-white text-[0.95rem] leading-tight drop-shadow-md">${card.title[currentLang]}</h2>
-                <p class="text-[0.65rem] text-white/80 mt-1 font-semibold tracking-wider uppercase">${card.type[currentLang]}</p>
+                <i data-lucide="${card.icon}" class="w-10 h-10 mx-auto text-white mb-2 drop-shadow-md"></i>
+                <h2 class="font-bold text-white text-[1.1rem] leading-tight drop-shadow-md">${card.title[currentLang]}</h2>
+                <p class="text-[0.7rem] text-white/80 mt-1 font-semibold tracking-wider uppercase">${card.type[currentLang]}</p>
             </div>
         </div>
-        <div class="bg-[#4169E1] flex-1 flex flex-col text-sm border-t-2 border-[#2b4cba]">
+        <div class="bg-[#4169E1] flex-1 flex flex-col text-sm md:text-base border-t-2 border-[#2b4cba]">
             ${statsRows}
-        </div>
-        <div class="h-[25%] bg-[#3B5998] p-3 text-white text-xs overflow-y-auto leading-relaxed text-justify border-t-2 border-[#2b4cba]">
-            ${card.desc[currentLang]}
         </div>
     </div>`;
 }
