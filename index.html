@@ -65,16 +65,16 @@
 
 <script>
 // ============================================================
-// CONFIGURAÇÃO DO GOOGLE SHEETS BACKEND
-// Cole abaixo a URL gerada no Google Apps Script (Web App)
+// CONFIGURAÇÃO DO GOOGLE SHEETS
 // ============================================================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_KNVclX3okYoig0iTCyGSMlyxl3HHirgodC352aVb7C2RDh88YHTbz64jjWoN7G21rA/exec';
+const APPS_SCRIPT_URL = 'SUA_NOVA_URL_AQUI'; // COLOQUE A URL GERADA NA ETAPA 3 AQUI
+const CSV_URL = 'https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/cartas.csv';
 
 // ── TRADUÇÕES ─────────────────────────────────────────────────────────────────
 const i18n = {
     pt: {
         title: "Super Trunfo", subtitle: "Engenharia de Materiais",
-        desc: "Descubra as propriedades dos materiais! O jogo sorteia 10 cartas aleatórias do baralho de 50.",
+        desc: "Descubra as propriedades dos materiais! O jogo sorteia 10 cartas aleatórias do baralho.",
         start: "Iniciar Partida", rematch: "Jogar Novamente",
         player: "Jogador", cpu: "CPU", cards: "cartas", drawAccum: "Empate acumulado",
         yourCard: "Sua Carta", cpuCard: "Carta do Oponente",
@@ -88,9 +88,9 @@ const i18n = {
         winDesc: "Você dominou a ciência dos materiais!", loseDesc: "A CPU superou seus conhecimentos estruturais.",
         stats: { lifetime: "Vida Útil", cost: "Custo", impact: "Impacto Diário", resistance: "Resistência", maxTemp: "Temp. Máx." },
         infoTitle: "Sobre o Jogo", rulesTitle: "Como Funciona", pedagogyTitle: "Objetivo Pedagógico",
-        rulesDesc: "O jogo distribui 5 cartas para você e 5 para o oponente. Escolha o melhor atributo da sua carta (para 'Custo', o menor vence!). O vencedor da rodada leva as cartas.",
-        pedagogyDesc: "Desenvolvido para construir uma intuição rápida sobre as propriedades das classes de materiais (Cerâmicas, Metais, Polímeros e Compósitos).",
-        loginDesc: "Insira seu nome de engenheiro para participar das batalhas online!",
+        rulesDesc: "O jogo distribui 5 cartas para você e 5 para o oponente. Na sua vez, escolha o melhor atributo (para 'Custo', o menor valor vence!). O vencedor da rodada leva as duas cartas.",
+        pedagogyDesc: "Desenvolvido para estudantes de Engenharia de Materiais para construir uma intuição rápida sobre propriedades e aplicações.",
+        loginDesc: "Insira seu nome de engenheiro para entrar nas batalhas online!",
         loginBtn: "Entrar no Lobby",
         waitingRooms: "Salas Disponíveis",
         createRoom: "Criar Nova Sala",
@@ -110,7 +110,7 @@ const i18n = {
     },
     en: {
         title: "Top Trumps", subtitle: "Materials Engineering",
-        desc: "Discover material properties! The game draws 10 random cards from a deck of 50.",
+        desc: "Discover material properties! The game draws 10 random cards from the deck.",
         start: "Start Match", rematch: "Play Again",
         player: "Player", cpu: "CPU", cards: "cards", drawAccum: "Accumulated draw",
         yourCard: "Your Card", cpuCard: "Opponent's Card",
@@ -124,8 +124,8 @@ const i18n = {
         winDesc: "You have mastered materials science!", loseDesc: "The CPU outsmarted your structural knowledge.",
         stats: { lifetime: "Lifetime", cost: "Cost", impact: "Daily Impact", resistance: "Resistance", maxTemp: "Max Temp." },
         infoTitle: "About the Game", rulesTitle: "How it Works", pedagogyTitle: "Pedagogical Objective",
-        rulesDesc: "The game deals 5 cards to you and 5 to the opponent. Choose the best attribute of your top card (for 'Cost', lowest wins!). The winner takes both cards.",
-        pedagogyDesc: "Developed to build quick intuition about the properties of different material classes (Ceramics, Metals, Polymers, and Composites).",
+        rulesDesc: "The game deals 5 cards to you and 5 to the opponent. Choose the best attribute (for 'Cost', lowest wins!). The winner takes both cards.",
+        pedagogyDesc: "Developed to build quick intuition about the properties of different material classes.",
         loginDesc: "Enter your engineer name to join the online battles!",
         loginBtn: "Enter Lobby",
         waitingRooms: "Available Rooms",
@@ -149,32 +149,53 @@ const i18n = {
 let currentLang = 'pt';
 const t = (key, nestedKey) => nestedKey ? (i18n[currentLang][key]?.[nestedKey] ?? nestedKey) : (i18n[currentLang][key] ?? key);
 
-// --- 50 CARDS MASTER DECK ---
-const MASTER_DECK = [
-    { id: 1, icon: "flame", color: "bg-orange-500", stats: { lifetime: 20, cost: 11, impact: 50, resistance: 14, maxTemp: 400 }, title: { pt: "Aquecedor de Sauna (Cerâmica)", en: "Ceramic Sauna Heater" }, type: { pt: "Cerâmica Avançada", en: "Advanced Ceramic" }, desc: { pt: "Elementos cerâmicos garantem eficiência energética e durabilidade ao emitir calor.", en: "Ceramic elements ensure energy efficiency and durability by emitting heat." } },
-    { id: 2, icon: "zap", color: "bg-yellow-500", stats: { lifetime: 100, cost: 45, impact: 93, resistance: 82, maxTemp: 300 }, title: { pt: "Isolador de Porcelana", en: "Porcelain Insulator" }, type: { pt: "Cerâmica Estrutural", en: "Structural Ceramic" }, desc: { pt: "Isolamento elétrico resistente a intempéries que suporta altas tensões nas linhas de energia.", en: "Weather-resistant electrical insulation that withstands high voltages on power lines." } },
-    { id: 11, icon: "settings", color: "bg-gray-400", stats: { lifetime: 98, cost: 60, impact: 80, resistance: 88, maxTemp: 1668 }, title: { pt: "Implante de Titânio", en: "Titanium Implant" }, type: { pt: "Liga Metálica", en: "Metal Alloy" }, desc: { pt: "Liga Ti-6Al-4V amplamente usada em ortopedia pela sua alta relação força-peso e biocompatibilidade.", en: "Ti-6Al-4V alloy widely used in orthopedics for its high strength-to-weight ratio." } },
-    { id: 13, icon: "car", color: "bg-zinc-500", stats: { lifetime: 60, cost: 30, impact: 90, resistance: 70, maxTemp: 1500 }, title: { pt: "Chassi de Aço (DP)", en: "Steel Chassis (DP)" }, type: { pt: "Aço Avançado", en: "Advanced Steel" }, desc: { pt: "Aço Dual Phase que absorve energia em batidas automobilísticas mantendo a integridade.", en: "Dual Phase steel that absorbs energy in car crashes while maintaining integrity." } },
-    { id: 22, icon: "package", color: "bg-cyan-500", stats: { lifetime: 10, cost: 5, impact: 100, resistance: 10, maxTemp: 260 }, title: { pt: "Garrafa PET", en: "PET Bottle" }, type: { pt: "Termoplástico", en: "Thermoplastic" }, desc: { pt: "Polietileno tereftalato, onipresente em embalagens por ser leve, transparente e reciclável.", en: "Ubiquitous in packaging for being lightweight, transparent, and recyclable." } },
-    { id: 31, icon: "wind", color: "bg-black", stats: { lifetime: 55, cost: 80, impact: 35, resistance: 90, maxTemp: 350 }, title: { pt: "Chassi de Fibra de Carbono", en: "Carbon Fiber Chassis" }, type: { pt: "Compósito Polimérico", en: "Polymer Composite" }, desc: { pt: "Fibras de carbono em matriz de epóxi oferecem resistência de aço com fração do peso.", en: "Carbon fibers in an epoxy matrix offer steel strength at a fraction of the weight." } },
-    { id: 36, icon: "shield", color: "bg-stone-500", stats: { lifetime: 100, cost: 15, impact: 90, resistance: 85, maxTemp: 1000 }, title: { pt: "Concreto Armado", en: "Reinforced Concrete" }, type: { pt: "Compósito Macro", en: "Macro Composite" }, desc: { pt: "A união do concreto (resistência à compressão) com o aço (resistência à tração).", en: "The union of concrete (compressive strength) with steel (tensile strength)." } },
-    { id: 41, icon: "cpu", color: "bg-gray-800", stats: { lifetime: 65, cost: 75, impact: 100, resistance: 50, maxTemp: 1414 }, title: { pt: "Wafer de Silício", en: "Silicon Wafer" }, type: { pt: "Semicondutor", en: "Semiconductor" }, desc: { pt: "Cristal ultra-puro dopado que forma os transistores do cérebro de todo computador.", en: "Ultra-pure doped crystal that forms the transistors of every computer's brain." } },
-    { id: 45, icon: "layers", color: "bg-zinc-900", stats: { lifetime: 75, cost: 95, impact: 5, resistance: 98, maxTemp: 3500 }, title: { pt: "Folha de Grafeno", en: "Graphene Sheet" }, type: { pt: "Nanomaterial de Carbono", en: "Carbon Nanomaterial" }, desc: { pt: "Camada atômica única de carbono com condutividade e força incomparáveis.", en: "Single atomic layer of carbon with unmatched conductivity and strength." } },
-    { id: 50, icon: "cpu", color: "bg-indigo-900", stats: { lifetime: 30, cost: 80, impact: 30, resistance: 45, maxTemp: 80 }, title: { pt: "Tinta de Prata Condutiva", en: "Conductive Silver Ink" }, type: { pt: "Compósito Funcional", en: "Functional Composite" }, desc: { pt: "Nanopartículas de prata em matriz polimérica para imprimir circuitos flexíveis e RFID.", en: "Silver nanoparticles in a polymer matrix for printing flexible circuits and RFID." } }
-    // OBS: Resumi o baralho aqui para caber no código, mas cole o seu MASTER_DECK de 50 cartas completo que você já tinha.
-];
+// ── BARALHO DINÂMICO ──────────────────────────────────────────────────────────
+let MASTER_DECK = [];
+
+async function loadDeck() {
+    try {
+        const response = await fetch(CSV_URL);
+        const textData = await response.text();
+        const rows = textData.split('\n');
+        MASTER_DECK = [];
+        
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (row === '') continue;
+            
+            const cols = row.split(';');
+            MASTER_DECK.push({
+                id: parseInt(cols[0]),
+                icon: cols[9] || 'box',
+                color: 'bg-blue-600',
+                stats: {
+                    lifetime: parseInt(cols[2]),
+                    cost: parseInt(cols[3]),
+                    impact: parseInt(cols[4]),
+                    resistance: parseInt(cols[5]),
+                    maxTemp: parseInt(cols[6])
+                },
+                title: { pt: cols[1], en: cols[8] },
+                type: { pt: "Material", en: "Material" },
+                desc: { pt: cols[10], en: cols[11] }
+            });
+        }
+        console.log("Cartas carregadas:", MASTER_DECK.length);
+    } catch (error) {
+        console.error("Erro ao carregar o baralho:", error);
+    }
+}
 
 // ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────────────
 let appMode      = 'auth'; // auth | lobby | game
 let currentProfile = null;
 let currentRoomId = null;
-let currentRoomData = null; // Guarda o estado recebido do Google Sheets
+let currentRoomData = null;
 let isPlayer1    = false;
 let isOfflineMode = false;
 let availableRooms = [];
 
-// ── ESTADO DO JOGO ────────────────────────────────────────────────────────────
-let gameState  = 'start'; // start | playing | resolving | result | gameover
+let gameState  = 'start';
 let playerDeck = [];
 let cpuDeck    = [];
 let tiedCards  = [];
@@ -182,7 +203,6 @@ let turn       = 'player';
 let selectedStat = null;
 let roundWinner  = null;
 
-// Polling do Google Sheets
 let pollingInterval = null;
 let isPolling = false;
 
@@ -224,24 +244,28 @@ function _showToast(msg) {
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
 }
 
-// ── COMUNICAÇÃO GOOGLE SHEETS ─────────────────────────────────────────────────
+// ── COMUNICAÇÃO GOOGLE SHEETS (ANTI-CORS) ─────────────────────────────────────
 async function sheetPost(data) {
     try {
+        // Enviar sem cabeçalho Content-Type customizado previne o erro de CORS do Google
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // text/plain evita bloqueio de CORS
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
+            redirect: 'follow'
         });
         return await response.json();
     } catch (err) {
-        console.error("Erro na comunicação com Sheets:", err);
+        console.error("Erro na comunicação com Sheets (POST):", err);
         return { success: false };
     }
 }
 
 async function sheetGet(action, extraParams = "") {
     try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}${extraParams}`);
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}${extraParams}`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
         return await response.json();
     } catch (err) {
         console.error("Erro no GET do Sheets:", err);
@@ -251,7 +275,7 @@ async function sheetGet(action, extraParams = "") {
 
 function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(syncRoomState, 3000); // Checa o Sheets a cada 3 segundos
+    pollingInterval = setInterval(syncRoomState, 3000);
 }
 
 function stopPolling() {
@@ -299,10 +323,15 @@ async function loadRooms() {
 }
 
 async function createRoom() {
-    if (APPS_SCRIPT_URL === 'SUA_URL_DO_APPS_SCRIPT_AQUI') {
-        _showToast('Configure a URL do Google Sheets no código-fonte.');
+    if (APPS_SCRIPT_URL === 'SUA_NOVA_URL_AQUI') {
+        _showToast('Configure a URL do Google Sheets no código!');
         return;
     }
+    if (MASTER_DECK.length < 10) {
+        _showToast('Erro: Baralho do GitHub não carregou cartas suficientes.');
+        return;
+    }
+
     playSfx('click');
     appMode = 'loading';
     render();
@@ -337,7 +366,7 @@ async function createRoom() {
         render();
     } else {
         appMode = 'lobby';
-        _showToast('Erro ao criar sala.');
+        _showToast('Erro ao criar sala. Verifique a URL do App Script.');
         render();
     }
 }
@@ -372,7 +401,6 @@ async function joinRoom(roomId) {
 async function leaveRoom(silent = false) {
     stopPolling();
     if (currentRoomId && currentRoomData && currentRoomData.status !== 'finished') {
-        // Tenta avisar o banco que a partida acabou
         sheetPost({ action: 'updateState', roomId: currentRoomId, gameState: currentRoomData.gameState, status: 'finished' });
     }
     currentRoomId = null;
@@ -387,6 +415,10 @@ async function leaveRoom(silent = false) {
 }
 
 function playOffline() {
+    if (MASTER_DECK.length < 10) {
+        _showToast('Erro: Baralho do GitHub não carregou cartas suficientes.');
+        return;
+    }
     playSfx('click');
     isOfflineMode = true;
     currentRoomId = null;
@@ -416,20 +448,17 @@ async function syncRoomState() {
 
     const res = await sheetGet('getState', `&roomId=${currentRoomId}`);
     if (res && res.success) {
-        // Se a sala acabou ou o oponente fugiu
         if (res.status === 'finished' && gameState !== 'gameover') {
             currentRoomData.status = 'finished';
             stopPolling();
             render();
         } 
-        // Se o oponente entrou
         else if (currentRoomData.status === 'waiting' && res.status === 'playing') {
             currentRoomData.status = 'playing';
             currentRoomData.player2 = res.player2;
             render();
         }
         
-        // Atualiza a UI se o estado mudou
         const newStateStr = JSON.stringify(res.gameState);
         const oldStateStr = JSON.stringify(currentRoomData.gameState);
         
@@ -464,7 +493,7 @@ async function mpHandleStatSelect(statKey) {
     
     selectedStat = statKey;
     gameState    = 'resolving';
-    render(); // UI imediata
+    render(); 
 
     currentRoomData.gameState.selected_stat = statKey;
     currentRoomData.gameState.game_phase = 'resolving';
@@ -514,23 +543,15 @@ async function mpNextRound() {
 
     const p1Card = p1Deck.shift();
     const p2Card = p2Deck.shift();
-
-    // Se é o player 2 engatilhando, ele deve passar o turno da rede para ele mesmo continuar.
-    // Lógica para saber de quem é o id
-    const p1Id = isPlayer1 ? currentProfile.id : 'opp'; // Hack simples já que não temos o ID do opp salvos no local
-    const p2Id = !isPlayer1 ? currentProfile.id : 'opp';
     
-    let nextTurnId = gState.current_turn; 
     let newTied  = tied;
 
     if (rw === 'player1') {
         p1Deck.push(p1Card, p2Card, ...tied);
         newTied  = [];
-        nextTurnId = isPlayer1 ? currentProfile.id : 'opp_id_placeholder'; // Simplificação, pois o turno é validado pelo ID
     } else if (rw === 'player2') {
         p2Deck.push(p2Card, p1Card, ...tied);
         newTied  = [];
-        nextTurnId = !isPlayer1 ? currentProfile.id : 'opp_id_placeholder';
     } else {
         newTied = [...tied, p1Card, p2Card]; 
     }
@@ -540,10 +561,9 @@ async function mpNextRound() {
     gState.player1_deck = p1Deck;
     gState.player2_deck = p2Deck;
     gState.tied_cards = newTied;
-    // Truque: como no sheets não temos ids rígidos, podemos setar o turno verificando quem ganhou.
+    
     if(rw === 'player1' && isPlayer1) gState.current_turn = currentProfile.id;
     if(rw === 'player2' && !isPlayer1) gState.current_turn = currentProfile.id;
-    // (Se o outro ganhou, ele seta o turno dele quando resolver)
 
     gState.game_phase = isGameOver ? 'gameover' : 'playing';
     gState.round_winner = null;
@@ -869,17 +889,8 @@ function _renderGame(app) {
     </main>`;
 }
 
-function _playerNick() {
-    return isOfflineMode ? t('player') : (currentProfile?.nickname ?? t('player'));
-}
-
-function _opponentNick() {
-    if (isOfflineMode) return t('cpu');
-    if (!currentRoomData) return '???';
-    // Pega o nome a partir de lógica simples: se sou player1, o opp é player2 do roomData
-    return isPlayer1 ? currentRoomData.player2 : currentRoomData.gameState.player1_nickname || 'Adversário'; // (necessita salvar nome do p1 tb no JSON se quisermos puxar aqui)
-}
-
+function _playerNick() { return isOfflineMode ? t('player') : (currentProfile?.nickname ?? t('player')); }
+function _opponentNick() { return isOfflineMode ? t('cpu') : (isPlayer1 ? (currentRoomData?.player2 || '???') : (currentRoomData?.gameState?.player1_nickname || 'Oponente')); }
 function _canClickNext() {
     if (isOfflineMode) return true;
     if (!currentRoomData || !currentRoomData.gameState) return false;
@@ -927,7 +938,7 @@ function getCardHTML(card, isHidden, isWinner, isActive, statFn) {
     </div>`;
 }
 
-// ================= Áudio & Partículas (MANTIDOS DO ORIGINAL) =================
+// ================= Áudio & Partículas =================
 let audioCtx; let musicNodes = []; let musicPlaying = false;
 function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
 function toggleMusic() {
@@ -975,7 +986,8 @@ class Particle {
 function animateParticles() { if(!ctx || !canvas) return; ctx.clearRect(0, 0, canvas.width, canvas.height); for (let i = 0; i < particlesArray.length; i++) { particlesArray[i].update(); particlesArray[i].draw(); } connectParticles(); requestAnimationFrame(animateParticles); }
 function connectParticles() { let opacityValue = 1; for (let a = 0; a < particlesArray.length; a++) { for (let b = a; b < particlesArray.length; b++) { let dx = particlesArray[a].x - particlesArray[b].x; let dy = particlesArray[a].y - particlesArray[b].y; let distance = dx * dx + dy * dy; if (distance < 12000) { opacityValue = 1 - (distance / 12000); ctx.strokeStyle = `rgba(141, 198, 63, ${opacityValue * 0.15})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke(); } } } }
 
-init();
+// Carrega as cartas primeiro e depois inicia o jogo
+loadDeck().then(() => init());
 </script>
 </body>
 </html>
