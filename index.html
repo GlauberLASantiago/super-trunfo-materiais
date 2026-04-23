@@ -101,7 +101,7 @@ const i18n = {
         noRooms: "Nenhuma sala disponível. Crie uma nova!",
         playOffline: "Jogar contra CPU (offline)",
         waitingTitle: "Aguardando Oponente...",
-        waitingDesc: "Compartilhe o código da sala com um amigo ou aguarde alguém entrar.",
+        waitingDesc: "Aguarde um oponente entrar na sua sala pelo lobby.",
         cancelWait: "Cancelar Sala",
         waitingOpponent: "Aguardando oponente...",
         leave: "Sair da Partida",
@@ -137,7 +137,7 @@ const i18n = {
         noRooms: "No rooms available. Create one!",
         playOffline: "Play vs CPU (offline)",
         waitingTitle: "Waiting for Opponent...",
-        waitingDesc: "Share the room code with a friend or wait for someone to join.",
+        waitingDesc: "Wait for an opponent to join your room from the lobby.",
         cancelWait: "Cancel Room",
         waitingOpponent: "Waiting for opponent...",
         leave: "Leave Match",
@@ -779,10 +779,6 @@ function _renderGame(app) {
             <i data-lucide="loader" class="w-16 h-16 text-[#8DC63F] animate-spin mb-6"></i>
             <h1 class="text-3xl font-black mb-3">${t('waitingTitle')}</h1>
             <p class="text-slate-400 mb-8 max-w-sm">${t('waitingDesc')}</p>
-            <div class="bg-slate-800 rounded-xl px-6 py-3 mb-8 border border-slate-600">
-                <p class="text-xs text-slate-400 mb-1">${t('roomCode')}</p>
-                <p class="font-mono text-lg font-bold text-[#8DC63F] tracking-widest">${currentRoomId}</p>
-            </div>
             <button onclick="leaveRoom()" class="bg-red-900/50 hover:bg-red-800 text-red-300 font-semibold py-2 px-6 rounded-full border border-red-700 transition-colors">
                 ${t('cancelWait')}
             </button>
