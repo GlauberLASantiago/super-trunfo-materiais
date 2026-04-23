@@ -57,7 +57,7 @@
     </div>
 
     <footer class="fixed bottom-3 right-5 z-40 flex flex-col items-end opacity-70 hover:opacity-100 transition-opacity pointer-events-none">
-        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Desenvolvido para</span>
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Desenvolvido por Glauber Santiago e Marcelo Cilla para o </span>
         <span class="text-sm font-black text-[#8DC63F] tracking-wider drop-shadow-md">DEMa - UFSCar</span>
     </footer>
 
@@ -501,7 +501,7 @@ async function mpHandleStatSelect(statKey) {
     currentRoomData.gameState.game_phase = 'resolving';
     
     await sheetPost({ action: 'updateState', roomId: currentRoomId, gameState: currentRoomData.gameState });
-    setTimeout(() => mpResolveRound(statKey), 2000);
+    setTimeout(() => mpResolveRound(statKey), 4000);
 }
 
 async function mpResolveRound(statKey) {
@@ -652,7 +652,7 @@ function cpuPlayRound() {
     gameState    = 'resolving';
     playSfx('tick');
     render();
-    setTimeout(() => resolveRound(bestStat), 2000);
+    setTimeout(() => resolveRound(bestStat), 4000);
 }
 
 // ── RENDERIZAÇÃO ──────────────────────────────────────────────────────────────
