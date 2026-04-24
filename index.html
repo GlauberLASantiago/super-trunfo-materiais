@@ -402,8 +402,11 @@ async function joinRoom(roomId) {
 
 async function leaveRoom(silent = false) {
     stopPolling();
-    if (currentRoomId && currentRoomData && currentRoomData.status !== 'finished') {
-        sheetPost({ action: 'updateState', roomId: currentRoomId, gameState: currentRoomData.gameState, status: 'finished' });
+    if (currentRoomId) {
+        if (currentRoomData && currentRoomData.status !== 'finished') {
+            await sheetPost({ action: 'updateState', roomId: currentRoomId, gameState: currentRoomData.gameState, status: 'finished' });
+        }
+        await sheetPost({ action: 'deleteRoom', roomId: currentRoomId });
     }
     currentRoomId = null;
     currentRoomData = null;
@@ -432,10 +435,14 @@ function playOffline() {
     render();
 }
 
-function goToLobby() {
+async function goToLobby() {
     playSfx('click');
     isOfflineMode = false;
+    if (currentRoomId) {
+        await sheetPost({ action: 'deleteRoom', roomId: currentRoomId });
+    }
     currentRoomId = null;
+    currentRoomData = null;
     gameState = 'start';
     appMode = 'lobby';
     stopPolling();
