@@ -7,9 +7,12 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Cinzel:wght@600;800&family=Montserrat:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        .font-diploma { font-family: 'Cinzel', serif; }
+        .font-text { font-family: 'Montserrat', sans-serif; }
         .card-hidden-bg {
             background-image: radial-gradient(circle at center, #ffffff 2px, transparent 2.5px);
             background-size: 20px 20px;
@@ -34,20 +37,25 @@
 
     <div class="absolute top-4 right-4 z-50 flex gap-3 items-center">
         <div id="user-header" class="hidden"></div>
+        <button onclick="toggleCertModal()" class="p-2 rounded-full bg-slate-800 text-yellow-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Emitir Certificado">
+            <i data-lucide="award" class="w-5 h-5"></i>
+        </button>
         <button onclick="toggleInfo()" class="p-2 rounded-full bg-slate-800 text-[#8DC63F] hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Informações">
             <i data-lucide="info" class="w-5 h-5"></i>
         </button>
         
         <!-- Painel de Áudio Premium -->
-        <div class="flex gap-1 bg-slate-800 p-1 rounded-full border border-slate-600 shadow-lg items-center">
-            <button onclick="toggleMusic()" id="btn-music" class="p-2 rounded-full text-slate-500 hover:text-slate-300 transition-colors" title="Tocar/Pausar Música">
+        <div class="flex bg-slate-800 p-1 rounded-full border border-slate-600 shadow-lg items-center transition-all duration-300 max-w-[44px] hover:max-w-[240px] overflow-hidden group">
+            <button onclick="toggleMusic()" id="btn-music" class="p-2 rounded-full text-slate-500 hover:text-slate-300 transition-colors shrink-0" title="Tocar/Pausar Música">
                 <i data-lucide="volume-x" id="icon-music" class="w-5 h-5"></i>
             </button>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" oninput="changeVolume(this.value)" class="w-14 md:w-20 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-[#8DC63F] mx-1" title="Volume">
-            <button onclick="nextMusic()" class="p-2 rounded-full text-slate-500 hover:text-slate-300 transition-colors" id="btn-next-music" title="Próxima Faixa">
-                <i data-lucide="skip-forward" class="w-4 h-4"></i>
-            </button>
-            <span id="track-name" class="text-[9px] text-[#8DC63F] font-black max-w-[55px] truncate mr-2 select-none uppercase hidden md:inline-block">Lobby</span>
+            <div class="flex items-center w-0 opacity-0 pointer-events-none group-hover:w-[90px] sm:group-hover:w-[155px] group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 gap-1 overflow-hidden shrink-0 pr-1">
+                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" oninput="changeVolume(this.value)" class="w-12 sm:w-14 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-[#8DC63F] mx-1" title="Volume">
+                <button onclick="nextMusic()" class="p-1.5 rounded-full text-slate-500 hover:text-slate-300 transition-colors shrink-0" id="btn-next-music" title="Próxima Faixa">
+                    <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                </button>
+                <span id="track-name" class="text-[9px] text-[#8DC63F] font-black max-w-[50px] truncate select-none uppercase hidden sm:inline-block shrink-0">Lobby</span>
+            </div>
         </div>
 
         <div class="flex gap-1 bg-slate-800 p-1 rounded-full border border-slate-600 shadow-lg">
@@ -70,6 +78,21 @@
                     <p id="text-pedagogy-desc" class="leading-relaxed"></p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal do Certificado -->
+    <div id="cert-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-800 border border-yellow-500 rounded-2xl p-6 md:p-8 max-w-md w-full text-white shadow-2xl relative transform scale-95 transition-transform duration-300" id="cert-modal-content">
+            <button onclick="toggleCertModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700/50 rounded-full p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h2 class="text-2xl font-black text-yellow-500 mb-4 flex items-center gap-2">
+                <i data-lucide="award"></i> <span id="cert-title">Emitir Certificado</span>
+            </h2>
+            <p class="text-slate-300 text-sm mb-6" id="cert-desc">Insira seu nome completo para gerar o certificado de conclusão da partida.</p>
+            <input type="text" id="cert-full-name" placeholder="Nome Completo do Aluno" class="w-full bg-slate-900 text-white border-2 border-slate-600 rounded-xl px-4 py-3 mb-6 focus:outline-none focus:border-yellow-500 text-center font-bold text-lg">
+            <button onclick="generateCertificate()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold py-3.5 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">
+                <i data-lucide="file-text" class="w-5 h-5"></i> <span id="cert-btn-text">Emitir PDF</span>
+            </button>
         </div>
     </div>
 
@@ -128,7 +151,12 @@ const i18n = {
         loading: "Carregando...",
         roomCode: "Código do desafio",
         enterName: "Digite seu nome",
-        refreshRooms: "Atualizar"
+        refreshRooms: "Atualizar",
+        genCertificate: "Gerar Certificado",
+        certModalTitle: "Emitir Certificado",
+        certModalDesc: "Insira seu nome completo para gerar o certificado de conclusão da partida.",
+        certModalPlaceholder: "Nome Completo do Aluno",
+        certModalBtn: "Emitir PDF"
     },
     en: {
         title: "Top Trumps", subtitle: "Materials Engineering",
@@ -164,12 +192,79 @@ const i18n = {
         loading: "Loading...",
         roomCode: "Challenge code",
         enterName: "Enter your name",
-        refreshRooms: "Refresh"
+        refreshRooms: "Refresh",
+        genCertificate: "Generate Certificate",
+        certModalTitle: "Issue Certificate",
+        certModalDesc: "Enter your full name to generate the match completion certificate.",
+        certModalPlaceholder: "Student's Full Name",
+        certModalBtn: "Generate PDF"
     }
 };
 
 let currentLang = 'pt';
+let sessionStats = {
+    matchesPlayed: 0,
+    matchesWon: 0,
+    matchesLost: 0,
+    roundsPlayed: 0,
+    roundsWon: 0,
+    roundsLost: 0,
+    roundsDrawn: 0,
+    onlineMatches: 0,
+    offlineMatches: 0,
+    clicksCount: 0,
+    studyGuideExports: 0,
+    materialsDiscovered: new Set(),
+    chosenStatsCounts: {
+        lifetime: 0,
+        cost: 0,
+        impact: 0,
+        resistance: 0,
+        maxTemp: 0
+    },
+    sessionStart: Date.now()
+};
+let isMatchRecorded = false;
+
+function getMostChosenStat() {
+    let maxCount = -1;
+    let maxStat = '';
+    const counts = sessionStats.chosenStatsCounts;
+    Object.keys(counts).forEach(key => {
+        if (counts[key] > maxCount) {
+            maxCount = counts[key];
+            maxStat = key;
+        }
+    });
+    if (maxCount <= 0) return currentLang === 'pt' ? 'Nenhuma propriedade selecionada ainda' : 'No properties selected yet';
+    return t('stats', maxStat) + ` (${maxCount}x)`;
+}
+
+function getDiscoveredMaterialsList() {
+    if (sessionStats.materialsDiscovered.size === 0) {
+        return currentLang === 'pt' ? 'Nenhum material registrado ainda nesta sessão.' : 'No materials recorded in this session yet.';
+    }
+    const names = [];
+    sessionStats.materialsDiscovered.forEach(id => {
+        const mat = MASTER_DECK.find(m => m.id === id);
+        if (mat) {
+            names.push(mat.title[currentLang]);
+        }
+    });
+    return names.join(', ');
+}
+
+function recordMatchEnd(playerWon) {
+    if (isMatchRecorded) return;
+    isMatchRecorded = true;
+    if (playerWon) {
+        sessionStats.matchesWon++;
+    } else {
+        sessionStats.matchesLost++;
+    }
+}
 const t = (key, nestedKey) => nestedKey ? (i18n[currentLang][key]?.[nestedKey] ?? nestedKey) : (i18n[currentLang][key] ?? key);
+
 
 // ── BARALHO DINÂMICO DO GITHUB ──────────────────────────────────────────────────
 let MASTER_DECK = [];
@@ -258,6 +353,14 @@ function updateInfoTexts() {
         el('text-rules-desc').innerText     = t('rulesDesc');
         el('text-pedagogy-title').innerText = t('pedagogyTitle');
         el('text-pedagogy-desc').innerText  = t('pedagogyDesc');
+    }
+    
+    // Atualiza os textos do modal do certificado de acordo com o idioma
+    if (el('cert-title')) {
+        el('cert-title').innerText = t('certModalTitle');
+        el('cert-desc').innerText = t('certModalDesc');
+        el('cert-full-name').placeholder = t('certModalPlaceholder');
+        el('cert-btn-text').innerText = t('certModalBtn');
     }
 }
 
@@ -385,6 +488,9 @@ async function createRoom() {
     });
 
     if (res && res.success) {
+        sessionStats.matchesPlayed++;
+        sessionStats.onlineMatches++;
+        isMatchRecorded = false;
         isPlayer1 = true;
         currentRoomId = res.roomId;
         currentRoomData = { status: 'waiting', player2: '', gameState: initialGameState };
@@ -411,6 +517,9 @@ async function joinRoom(roomId) {
     });
 
     if (res && res.success) {
+        sessionStats.matchesPlayed++;
+        sessionStats.onlineMatches++;
+        isMatchRecorded = false;
         isPlayer1 = false;
         currentRoomId = roomId;
         currentRoomData = { status: 'playing', player2: currentProfile.nickname, gameState: res.gameState };
@@ -428,6 +537,7 @@ async function joinRoom(roomId) {
 
 async function leaveRoom(silent = false) {
     stopPolling();
+    stopSfx('tick'); // Interrompe o som de tick/carregamento residual
     if (currentRoomId && currentRoomData && currentRoomData.status !== 'finished') {
         sheetPost({ action: 'updateState', roomId: currentRoomId, gameState: currentRoomData.gameState, status: 'finished' });
     }
@@ -460,6 +570,7 @@ function playOffline() {
 
 function goToLobby() {
     playSfx('click');
+    stopSfx('tick'); // Interrompe o som de tick/carregamento residual
     isOfflineMode = false;
     currentRoomId = null;
     gameState = 'start';
@@ -519,6 +630,7 @@ function syncLocalStateFromData(gState) {
         stopPolling();
         const playerWon = isOfflineMode ? playerDeck.length > 0 : (isPlayer1 ? playerDeck.length > cpuDeck.length : cpuDeck.length > playerDeck.length);
         playSfx(playerWon ? 'victory' : 'defeat');
+        recordMatchEnd(playerWon);
     }
 }
 
@@ -526,6 +638,7 @@ async function mpHandleStatSelect(statKey) {
     if (!currentRoomId || gameState !== 'playing' || turn !== 'player') return;
     playSfx('click'); playSfx('tick');
     
+    sessionStats.chosenStatsCounts[statKey]++;
     selectedStat = statKey;
     gameState    = 'resolving';
     render(); 
@@ -539,10 +652,16 @@ async function mpHandleStatSelect(statKey) {
 
 async function mpResolveRound(statKey) {
     if (!currentRoomId) return;
+    stopSfx('tick'); // Para o som de contagem regressiva/ticking
     playSfx('flip');
+    sessionStats.roundsPlayed++;
     const gState = currentRoomData.gameState;
     const myCard  = isPlayer1 ? gState.player1_deck[0] : gState.player2_deck[0];
     const oppCard = isPlayer1 ? gState.player2_deck[0] : gState.player1_deck[0];
+    
+    if (myCard) sessionStats.materialsDiscovered.add(myCard.id);
+    if (oppCard) sessionStats.materialsDiscovered.add(oppCard.id);
+
     const myVal   = myCard.stats[statKey];
     const oppVal  = oppCard.stats[statKey];
     const isLowerBetter = statKey === 'cost';
@@ -551,10 +670,17 @@ async function mpResolveRound(statKey) {
     if (myVal === oppVal) {
         winner = 'draw';
         playSfx('draw');
+        sessionStats.roundsDrawn++;
     } else {
         const iWin = isLowerBetter ? myVal < oppVal : myVal > oppVal;
         winner = iWin ? (isPlayer1 ? 'player1' : 'player2') : (isPlayer1 ? 'player2' : 'player1');
         playSfx(iWin ? 'win' : 'lose');
+        
+        if (iWin) {
+            sessionStats.roundsWon++;
+        } else {
+            sessionStats.roundsLost++;
+        }
     }
 
     gState.game_phase = 'result';
@@ -615,6 +741,9 @@ async function mpNextRound() {
 // ── LÓGICA OFFLINE / CPU ──────────────────────────────────────────────────────
 function startGame() {
     playSfx('click');
+    sessionStats.matchesPlayed++;
+    sessionStats.offlineMatches++;
+    isMatchRecorded = false;
     const shuffled = [...MASTER_DECK].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, 10);
     playerDeck   = selected.slice(0, 5);
@@ -630,6 +759,7 @@ function startGame() {
 function handleStatSelect(statKey) {
     if (gameState !== 'playing' || turn !== 'player') return;
     playSfx('click');
+    sessionStats.chosenStatsCounts[statKey]++;
     selectedStat = statKey;
     gameState    = 'resolving';
     playSfx('tick');
@@ -638,18 +768,36 @@ function handleStatSelect(statKey) {
 }
 
 function resolveRound(statKey) {
+    stopSfx('tick'); // Para o som de contagem regressiva/ticking
     playSfx('flip');
+    sessionStats.roundsPlayed++;
+    
+    if (playerDeck[0]) sessionStats.materialsDiscovered.add(playerDeck[0].id);
+    if (cpuDeck[0]) sessionStats.materialsDiscovered.add(cpuDeck[0].id);
+
     const pVal = playerDeck[0].stats[statKey];
     const cVal = cpuDeck[0].stats[statKey];
     const isLowerBetter = statKey === 'cost';
     if (pVal === cVal) {
-        roundWinner = 'draw'; playSfx('draw');
+        roundWinner = 'draw'; 
+        playSfx('draw');
+        sessionStats.roundsDrawn++;
     } else if (isLowerBetter) {
         roundWinner = pVal < cVal ? 'player' : 'cpu';
         playSfx(roundWinner === 'player' ? 'win' : 'lose');
+        if (roundWinner === 'player') {
+            sessionStats.roundsWon++;
+        } else {
+            sessionStats.roundsLost++;
+        }
     } else {
         roundWinner = pVal > cVal ? 'player' : 'cpu';
         playSfx(roundWinner === 'player' ? 'win' : 'lose');
+        if (roundWinner === 'player') {
+            sessionStats.roundsWon++;
+        } else {
+            sessionStats.roundsLost++;
+        }
     }
     gameState = 'result';
     render();
@@ -666,9 +814,12 @@ function nextRound() {
     roundWinner  = null;
     if (playerDeck.length === 0 || cpuDeck.length === 0) {
         gameState = 'gameover';
+        const playerWon = playerDeck.length > 0;
+        playSfx(playerWon ? 'victory' : 'defeat');
+        recordMatchEnd(playerWon);
     } else {
         gameState = 'playing';
-        if (turn === 'cpu') setTimeout(cpuPlayRound, 1500);
+        if (turn === 'cpu') setTimeout(cpuPlayRound, 5000);
     }
     render();
 }
@@ -802,6 +953,10 @@ function _screenLobby() {
                     class="w-full bg-blue-900/40 hover:bg-blue-800 text-blue-300 font-medium py-3 rounded-xl border border-blue-700/50 transition-all flex items-center justify-center gap-2">
                     <i data-lucide="book-open" class="w-4 h-4"></i> Guia de Estudos (Exportar)
                 </button>
+                <button onclick="toggleCertModal()"
+                    class="w-full bg-yellow-950/40 hover:bg-yellow-800 text-yellow-300 font-medium py-3 rounded-xl border border-yellow-700/50 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="award" class="w-4 h-4"></i> ${t('genCertificate')}
+                </button>
             </div>
         </div>
     </div>`;
@@ -866,6 +1021,9 @@ function _renderGame(app) {
                 <span class="text-red-400">${oppNick}: ${cpuDeck.length}</span>
             </div>
             <div class="flex gap-4 flex-wrap justify-center">
+                <button onclick="toggleCertModal()" class="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold text-lg py-3 px-8 rounded-full transition-all shadow-[0_0_15px_rgba(234,179,8,0.3)] transform hover:scale-105">
+                    <i data-lucide="award" class="w-5 h-5"></i> ${t('genCertificate')}
+                </button>
                 ${isOfflineMode ? `<button onclick="startGame()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-3 px-8 rounded-full transition-all"><i data-lucide="refresh-cw" class="w-5 h-5"></i> ${t('rematch')}</button>` : ''}
                 <button onclick="${isOfflineMode ? 'goToLobby()' : 'leaveRoom()'}" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-lg py-3 px-8 rounded-full transition-all"><i data-lucide="home" class="w-5 h-5"></i> ${t('lobby')}</button>
             </div>
@@ -880,8 +1038,12 @@ function _renderGame(app) {
 
     // Lógica para pegar a curiosidade (Descrição) da carta e mostrar no painel
     const currentCard = playerDeck[0];
-    const funFact = currentCard ? currentCard.desc[currentLang] : '';
+    const funFact = currentCard ? `<strong>${currentCard.title[currentLang]}:</strong> "${currentCard.desc[currentLang]}"` : '';
     const factTitle = currentLang === 'pt' ? 'Curiosidade' : 'Fun Fact';
+
+    // Ocultar o nome do material do oponente se for a vez do jogador escolher para evitar "cola"
+    const oppNameText = (gameState === 'playing' && turn === 'player') ? '???' : (cpuDeck[0] ? cpuDeck[0].title[currentLang] : '???');
+    const oppTooltip = (gameState === 'playing' && turn === 'player') ? '' : (cpuDeck[0] ? cpuDeck[0].title[currentLang] : '');
 
     app.innerHTML = `
     <header class="flex justify-between items-center mb-8 px-8 py-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
@@ -907,9 +1069,19 @@ function _renderGame(app) {
         <div class="flex flex-col items-center justify-center w-full max-w-sm text-center order-first lg:order-none mb-4 lg:mb-0">
             ${gameState === 'playing' ? `
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full transition-all">
-                <i data-lucide="activity" class="w-12 h-12 mx-auto mb-4 ${turn === 'player' ? 'text-[#8DC63F]' : 'text-red-500'}"></i>
-                <h3 class="text-xl font-bold mb-2">${turn === 'player' ? t('yourTurn') : t('cpuTurn')}</h3>
-                <p class="text-slate-400 text-sm">${turn === 'player' ? t('clickStat') : t('cpuThinking')}</p>
+                ${turn === 'player' ? `
+                <i data-lucide="swords" class="w-12 h-12 mx-auto mb-4 text-[#8DC63F] animate-pulse"></i>
+                <h3 class="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-[#8DC63F] to-emerald-400">${t('yourTurn')}</h3>
+                <p class="text-slate-400 text-xs md:text-sm">${t('clickStat')}</p>
+                ` : `
+                <i data-lucide="brain" class="w-12 h-12 mx-auto mb-4 text-red-400 animate-bounce"></i>
+                <h3 class="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-500">${t('cpuTurn')}</h3>
+                <p class="text-slate-300 text-sm mb-4 leading-relaxed font-semibold">
+                    ${currentLang === 'pt'
+                        ? `O material dele é <strong class="text-red-400 animate-pulse">${cpuDeck[0] ? cpuDeck[0].title.pt : '???'}</strong> e o seu é <strong class="text-blue-400">${playerDeck[0] ? playerDeck[0].title.pt : '???'}</strong>.<br>Qual propriedade ele escolherá?`
+                        : `Their material is <strong class="text-red-400 animate-pulse">${cpuDeck[0] ? cpuDeck[0].title.en : '???'}</strong> and yours is <strong class="text-blue-400">${playerDeck[0] ? playerDeck[0].title.en : '???'}</strong>.<br>Which property will they choose?`}
+                </p>
+                `}
             </div>
             ` : gameState === 'resolving' ? `
             <div class="bg-slate-800 p-6 rounded-2xl border border-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.3)] w-full flex flex-col items-center transform scale-105 transition-all">
@@ -918,9 +1090,8 @@ function _renderGame(app) {
                 
                 <div class="mt-4 pt-4 border-t border-slate-600 w-full text-center">
                     <span class="text-xs text-blue-400 uppercase tracking-widest font-bold block mb-2"><i data-lucide="lightbulb" class="w-3 h-3 inline-block mr-1"></i>${factTitle}</span>
-                    <p class="text-slate-300 text-sm leading-relaxed italic">"${funFact}"</p>
+                    <p class="text-slate-300 text-sm leading-relaxed italic">${funFact}</p>
                 </div>
-
             </div>
             ` : `
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-600 shadow-xl w-full flex flex-col items-center transition-all">
@@ -932,7 +1103,7 @@ function _renderGame(app) {
         </div>
         <div class="flex flex-col items-center">
             <h3 class="mb-4 text-xl font-semibold text-red-300">${oppNick}</h3>
-            ${getCardHTML(cpuDeck[0], gameState === 'playing' || gameState === 'resolving', gameState === 'result' ? roundWinner === 'cpu' : null, false, statFn)}
+            ${getCardHTML(cpuDeck[0], gameState === 'playing' || gameState === 'resolving', gameState === 'result' ? roundWinner === 'cpu' : null, false, statFn, gameState === 'playing' && turn === 'player')}
         </div>
     </main>`;
 }
@@ -947,14 +1118,18 @@ function _canClickNext() {
     return rw === 'draw' ? isPlayer1 : (rw === 'player1' ? isPlayer1 : !isPlayer1);
 }
 
-function getCardHTML(card, isHidden, isWinner, isActive, statFn) {
+function getCardHTML(card, isHidden, isWinner, isActive, statFn, hideIdentity = false) {
     if (!card) return '';
     if (isHidden) {
+        const iconName = hideIdentity ? 'help-circle' : (card.icon || 'rocket');
+        const titleText = hideIdentity ? '???' : card.title[currentLang];
         return `
         <div class="w-64 md:w-72 h-[26rem] md:h-[28rem] bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl border-4 border-indigo-500 shadow-xl flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300">
             <div class="absolute inset-0 opacity-20 card-hidden-bg"></div>
-            <i data-lucide="rocket" class="w-16 h-16 text-blue-300 mb-4 opacity-80"></i>
-            <h3 class="text-xl font-bold text-blue-200 text-center uppercase tracking-widest">${t('title').replace(' ', '<br/>')}</h3>
+            <i data-lucide="${iconName}" class="w-16 h-16 text-blue-300 mb-4 opacity-80 animate-pulse"></i>
+            <span class="text-[10px] text-blue-400 uppercase tracking-widest font-bold mb-1">${currentLang === 'pt' ? 'Material do Oponente' : 'Opponent\'s Material'}</span>
+            <h3 class="text-xl font-bold text-white text-center px-4 leading-snug drop-shadow-md">${titleText}</h3>
+            <p class="text-[10px] text-blue-300/60 mt-4 uppercase tracking-widest font-semibold">${currentLang === 'pt' ? 'Atributos Ocultos' : 'Stats Hidden'}</p>
         </div>`;
     }
     const borderClass = isWinner === true  ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] scale-105' : isWinner === false ? 'border-gray-500 opacity-80' : 'border-[#8DC63F] shadow-lg';
@@ -1014,16 +1189,43 @@ if (localStorage.getItem('super-trunfo-volume') !== null) {
     globalVolume = parseFloat(localStorage.getItem('super-trunfo-volume'));
 }
 
+let activeSfx = {};
+
 function playSfx(type) {
     try {
+        if (type === 'click') {
+            sessionStats.clicksCount++;
+        }
         const url = SFX_URLS[type];
         if (!url) return;
         
+        // Se já houver um som desse tipo tocando, encerra ele imediatamente
+        if (activeSfx[type]) {
+            activeSfx[type].pause();
+            activeSfx[type] = null;
+        }
+        
         const audio = new Audio(url);
         audio.volume = globalVolume * 0.8;
+        activeSfx[type] = audio;
+        
+        // Limpa a referência ao encerrar o áudio para liberar memória
+        audio.onended = () => {
+            if (activeSfx[type] === audio) {
+                activeSfx[type] = null;
+            }
+        };
+        
         audio.play().catch(e => console.log("SFX autoplay blocked:", e));
     } catch (e) {
         console.error(e);
+    }
+}
+
+function stopSfx(type) {
+    if (activeSfx[type]) {
+        activeSfx[type].pause();
+        activeSfx[type] = null;
     }
 }
 
@@ -1136,6 +1338,7 @@ function connectParticles() { let opacityValue = 1; for (let a = 0; a < particle
 loadDeck().then(() => init());
 
 function exportStudyGuide() {
+    sessionStats.studyGuideExports++;
     if (MASTER_DECK.length === 0) {
         _showToast("Aguarde o carregamento das cartas...");
         return;
@@ -1219,6 +1422,230 @@ function exportStudyGuide() {
     </html>`;
 
     const blob = new Blob([guideHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+}
+
+function toggleCertModal() {
+    const modal = document.getElementById('cert-modal');
+    const content = document.getElementById('cert-modal-content');
+    if (!modal || !content) return;
+    
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+        playSfx('click');
+    } else {
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+        playSfx('click');
+    }
+}
+
+function generateCertificate() {
+    const fullNameInput = document.getElementById('cert-full-name');
+    const name = fullNameInput ? fullNameInput.value.trim() : '';
+    if (!name) {
+        _showToast(currentLang === 'pt' ? 'Por favor, digite seu nome completo!' : 'Please enter your full name!');
+        return;
+    }
+    
+    playSfx('click');
+    toggleCertModal(); // Fecha o modal
+    
+    // Coleta dados da partida
+    const hasFinishedGame = (gameState === 'gameover');
+    const playerWon = isOfflineMode ? playerDeck.length > 0 : (isPlayer1 ? playerDeck.length > cpuDeck.length : cpuDeck.length > playerDeck.length);
+    
+    let resultText = "";
+    let finalCardsText = "";
+    if (hasFinishedGame) {
+        resultText = playerWon 
+            ? (currentLang === 'pt' ? 'Vitória' : 'Victory') 
+            : (currentLang === 'pt' ? 'Derrota' : 'Defeat');
+        finalCardsText = `${playerDeck.length} ${currentLang === 'pt' ? 'cartas obtidas' : 'cards obtained'}`;
+    } else {
+        resultText = currentLang === 'pt' ? 'Participação / Simulação' : 'Participation / Simulation';
+        finalCardsText = currentLang === 'pt' ? 'Sessão de treinamento' : 'Training session';
+    }
+    
+    const modeText = hasFinishedGame 
+        ? (isOfflineMode 
+            ? (currentLang === 'pt' ? 'Contra CPU (Offline)' : 'vs CPU (Offline)')
+            : (currentLang === 'pt' ? 'Multijogador (Online)' : 'Multiplayer (Online)'))
+        : (currentLang === 'pt' ? 'Estudo / Treino' : 'Study / Training');
+    
+    // Formata data e hora
+    const now = new Date();
+    const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateFormatted = now.toLocaleDateString(currentLang === 'pt' ? 'pt-BR' : 'en-US', optionsDate);
+    const timeFormatted = now.toLocaleTimeString(currentLang === 'pt' ? 'pt-BR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    // Novas estatísticas avançadas de engajamento
+    const durationMs = Date.now() - sessionStats.sessionStart;
+    const durationMin = Math.floor(durationMs / 60000);
+    const durationSec = Math.floor((durationMs % 60000) / 1000);
+    const durationText = currentLang === 'pt' 
+        ? `${durationMin} min e ${durationSec} s` 
+        : `${durationMin} min and ${durationSec} s`;
+        
+    const mostChosenStat = getMostChosenStat();
+    const discoveredList = getDiscoveredMaterialsList();
+    const verificationId = Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    const certHtml = `
+    <!DOCTYPE html>
+    <html lang="${currentLang}">
+    <head>
+        <meta charset="UTF-8">
+        <title>Certificado - Super Trunfo Materiais - DEMa UFSCar</title>
+        <script src="https://cdn.tailwindcss.com"><\/script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Montserrat:wght@400;600;700&display=swap');
+            @media print {
+                .no-print { display: none; }
+                body { background: #fff; -webkit-print-color-adjust: exact; }
+                @page {
+                    size: landscape;
+                    margin: 0;
+                }
+            }
+            .font-diploma { font-family: 'Cinzel', serif; }
+            .font-text { font-family: 'Montserrat', sans-serif; }
+        </style>
+    </head>
+    <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4 md:p-8 font-text">
+        <div class="absolute top-4 right-4 no-print">
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-lg shadow-lg transition-transform hover:scale-105">
+                ${currentLang === 'pt' ? 'Imprimir / Salvar PDF' : 'Print / Save PDF'}
+            </button>
+        </div>
+        
+        <div class="bg-white border-[16px] border-double border-blue-900 w-full max-w-5xl p-10 md:p-12 rounded-lg shadow-2xl relative bg-[radial-gradient(#f8fafc_1px,transparent_1px)] [background-size:16px_16px] flex flex-col justify-between" style="min-height: 680px; box-sizing: border-box;">
+            <!-- Cantos Ornamentados -->
+            <div class="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-blue-900"></div>
+            <div class="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-blue-900"></div>
+            <div class="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-blue-900"></div>
+            <div class="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-blue-900"></div>
+            
+            <!-- Topo: Cabeçalho -->
+            <header class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-slate-900 px-4 py-2.5 rounded-xl shadow-md flex items-center">
+                        <img src="https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/dema-inteiro-branco-horizontal.svg" class="h-8 w-auto">
+                    </div>
+                    <div>
+                        <h3 class="text-[10px] uppercase tracking-widest text-slate-500 font-bold leading-none">Universidade Federal de São Carlos</h3>
+                        <h4 class="text-[12px] uppercase tracking-wide text-blue-900 font-black mt-1 leading-none">Departamento de Engenharia de Materiais - DEMa</h4>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block leading-none mb-1">Código do Certificado</span>
+                    <strong class="text-xs text-blue-900 font-mono leading-none">${verificationId}</strong>
+                </div>
+            </header>
+
+            <!-- Meio: Texto Principal e Relatório Técnico -->
+            <div class="flex-1 grid grid-cols-12 gap-8 items-center">
+                <!-- Lado Esquerdo: Certificação e Nome -->
+                <main class="col-span-7 flex flex-col justify-center pr-6 border-r border-slate-200">
+                    <h1 class="font-diploma text-4xl text-amber-600 font-extrabold tracking-wide mb-1 uppercase leading-none">Certificado de Participação</h1>
+                    <span class="text-[9px] font-bold text-red-500 uppercase tracking-widest block mb-5">[ ${currentLang === 'pt' ? 'Simulação de Jogo - Certificado Não Oficial' : 'Game Simulation - Unofficial Certificate'} ]</span>
+                    
+                    <p class="text-slate-600 text-xs leading-relaxed mb-4">
+                        ${currentLang === 'pt' 
+                            ? 'Certificamos para os devidos fins que o(a) estudante/participante' 
+                            : 'This is to certify that the student/participant'}
+                    </p>
+                    
+                    <h2 class="font-diploma text-3xl text-blue-950 font-black mb-5 border-b-2 border-slate-200 pb-2 italic">
+                        ${name}
+                    </h2>
+                    
+                    <p class="text-slate-600 text-xs leading-relaxed">
+                        ${currentLang === 'pt'
+                            ? 'participou ativamente de uma sessão pedagógica simulada no jogo <strong>Super Trunfo: Engenharia de Materiais</strong>, confrontando propriedades estruturais, econômicas e ecológicas de diversas classes de materiais sob a curadoria didática do DEMa/UFSCar.'
+                            : 'actively participated in a simulated pedagogical session of the game <strong>Super Trunfo: Materials Engineering</strong>, comparing structural, economic, and ecological properties of various classes of materials under the educational curatorship of DEMa/UFSCar.'}
+                    </p>
+                </main>
+                
+                <!-- Lado Direito: Relatório Técnico de Desempenho -->
+                <aside class="col-span-5 flex flex-col justify-between h-full py-2">
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                        <div class="bg-blue-900 text-white px-3 py-2 font-bold uppercase tracking-wider text-[9px] flex justify-between items-center leading-none">
+                            <span>${currentLang === 'pt' ? 'Relatório Técnico de Engajamento' : 'Technical Engagement Report'}</span>
+                            <span class="text-[8px] opacity-75 font-normal">SESSÃO: #${verificationId}</span>
+                        </div>
+                        
+                        <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] bg-slate-50/50">
+                            <div class="flex flex-col">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Tempo de Estudo' : 'Study Time'}</span>
+                                <strong class="text-slate-800 text-[11px]">${durationText}</strong>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Cliques de Interação' : 'Interaction Clicks'}</span>
+                                <strong class="text-slate-800 text-[11px]">${sessionStats.clicksCount}</strong>
+                            </div>
+                            <div class="flex flex-col col-span-2 border-t border-slate-100 pt-1.5">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Propriedade Mais Escolhida' : 'Most Selected Property'}</span>
+                                <strong class="text-slate-800 text-[11px]">${mostChosenStat}</strong>
+                            </div>
+                            <div class="flex flex-col border-t border-slate-100 pt-1.5">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Modo de Jogo' : 'Game Mode'}</span>
+                                <strong class="text-slate-800">${modeText}</strong>
+                            </div>
+                            <div class="flex flex-col border-t border-slate-100 pt-1.5">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Resultado Final' : 'Final Result'}</span>
+                                <strong class="text-slate-800">${resultText}</strong>
+                            </div>
+                            <div class="flex flex-col border-t border-slate-100 pt-1.5">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Cartas da Rodada' : 'Round Cards'}</span>
+                                <strong class="text-slate-800">${finalCardsText}</strong>
+                            </div>
+                            <div class="flex flex-col border-t border-slate-100 pt-1.5">
+                                <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Rodadas Jogadas' : 'Rounds Played'}</span>
+                                <strong class="text-slate-800">${sessionStats.roundsPlayed} (${sessionStats.roundsWon} V / ${sessionStats.roundsLost} D)</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Materiais Científicos Estudados -->
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white mt-3">
+                        <div class="bg-slate-800 text-white px-3 py-1.5 font-bold uppercase tracking-wider text-[9px] leading-none">
+                            ${currentLang === 'pt' ? 'Materiais Estudados nesta Sessão' : 'Materials Studied in this Session'}
+                            <span class="text-[8px] font-normal text-slate-300">(${sessionStats.materialsDiscovered.size})</span>
+                        </div>
+                        <div class="p-2.5 bg-slate-50/50">
+                            <p class="text-slate-600 text-[9px] leading-normal italic line-clamp-3 overflow-hidden">
+                                ${discoveredList}
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Rodapé: Datas e Assinaturas -->
+            <footer class="flex justify-between items-end border-t border-slate-200 pt-4 mt-4">
+                <div class="text-[9px] text-slate-400 leading-normal max-w-xl">
+                    Emitido em: ${dateFormatted} às ${timeFormatted}<br>
+                    Curso de Engenharia de Materiais - Departamento de Engenharia de Materiais - UFSCar<br>
+                    <span class="text-red-500 font-bold uppercase tracking-wider text-[8px]">${currentLang === 'pt' ? '*Este é um certificado de jogo/simulação lúdica e não confere créditos acadêmicos oficiais' : '*This is a game/simulation certificate and does not confer official academic credits'}</span>
+                </div>
+                <div class="text-center">
+                    <div class="h-px bg-slate-400 w-44 mb-1.5 mx-auto"></div>
+                    <p class="text-[11px] font-bold text-slate-700 leading-none">Prof. Dr. Marcelo Cilla</p>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1 leading-none">Curador de Dados - DEMa UFSCar</p>
+                </div>
+            </footer>
+        </div>
+    </body>
+    </html>`;
+
+    const blob = new Blob([certHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
 }
