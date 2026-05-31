@@ -4,6 +4,9 @@ Este é um jogo interativo no estilo **Super Trumps (Super Trunfo)** desenvolvid
 
 O projeto foi curado pedagogicamente pelo **Departamento de Engenharia de Materiais (DEMa) da UFSCar**.
 
+<img width="1128" height="928" alt="image" src="https://github.com/user-attachments/assets/74fa9f86-4c21-41d5-94de-c8c0fa9cb719" />
+
+
 ---
 
 ## 🌟 Funcionalidades
