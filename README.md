@@ -6,6 +6,9 @@ O projeto foi curado pedagogicamente pelo **Departamento de Engenharia de Materi
 
 ---
 
+<img width="1128" height="928" alt="image" src="https://github.com/user-attachments/assets/cf46f800-e57d-4498-a9e4-1496a4eb24d0" />
+
+
 ## 🌟 Funcionalidades
 
 - **🃏 Baralho Dinâmico**: As cartas do jogo são carregadas dinamicamente a partir de um arquivo CSV, permitindo fácil atualização do baralho diretamente de um repositório no GitHub ou localmente.
