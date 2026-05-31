@@ -29,18 +29,18 @@
     <canvas id="particles" class="fixed inset-0 pointer-events-none z-0 opacity-30"></canvas>
 
     <!-- Logo DEMa no Canto Superior Esquerdo -->
-    <div class="absolute top-4 left-4 z-50 flex items-center gap-2">
+    <div class="fixed top-4 left-4 z-50 flex items-center gap-2">
         <a href="https://www.dema.ufscar.br" target="_blank" class="hover:scale-105 transition-transform" title="DEMa - UFSCar">
             <img src="dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-8 md:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity">
         </a>
     </div>
 
-    <div class="absolute top-4 right-4 z-50 flex gap-3 items-center">
+    <div class="fixed top-4 right-4 z-50 flex gap-3 items-center">
         <div id="user-header" class="hidden"></div>
-        <button onclick="toggleCertModal()" class="p-2 rounded-full bg-slate-800 text-yellow-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Emitir Certificado">
+        <button id="btn-cert" onclick="toggleCertModal()" class="p-2 rounded-full bg-slate-800 text-yellow-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Emitir Certificado">
             <i data-lucide="award" class="w-5 h-5"></i>
         </button>
-        <button onclick="toggleInfo()" class="p-2 rounded-full bg-slate-800 text-[#8DC63F] hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Informações">
+        <button id="btn-info" onclick="toggleInfo()" class="p-2 rounded-full bg-slate-800 text-[#8DC63F] hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Informações">
             <i data-lucide="info" class="w-5 h-5"></i>
         </button>
         
@@ -96,8 +96,22 @@
         </div>
     </div>
 
+    <!-- Modal do QR Code -->
+    <div id="qrcode-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-800 border border-blue-500 rounded-2xl p-6 md:p-8 max-w-sm w-full text-white shadow-2xl relative transform scale-95 transition-transform duration-300" id="qrcode-modal-content">
+            <button onclick="toggleQRCodeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700/50 rounded-full p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h2 class="text-2xl font-black text-blue-400 mb-4 flex items-center gap-2">
+                <i data-lucide="qr-code" class="w-5 h-5"></i> <span id="qrcode-modal-title">QR Code</span>
+            </h2>
+            <div class="flex flex-col items-center gap-4 bg-white p-4 rounded-xl border border-slate-700 shadow-inner">
+                <img src="https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/qrcode_glauberlasantiago.github.io.png" alt="QR Code" class="w-64 h-64 object-contain">
+            </div>
+            <p class="text-slate-300 text-xs text-center mt-4" id="qrcode-modal-desc">Escaneie para acessar o jogo no celular!</p>
+        </div>
+    </div>
+
     <footer class="fixed bottom-3 right-5 z-40 flex flex-col items-end opacity-70 hover:opacity-100 transition-opacity pointer-events-auto text-right">
-        <span class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Desenvolvido por Glauber Santiago e Marcelo Cilla para o</span>
+        <span id="footer-text" class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Desenvolvido por Glauber Santiago e Marcelo Cilla para o</span>
         <a href="https://www.dema.ufscar.br" target="_blank" class="hover:scale-105 transition-transform" title="DEMa - UFSCar">
             <img src="dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-6 md:h-8 w-auto">
         </a>
@@ -156,7 +170,8 @@ const i18n = {
         certModalTitle: "Emitir Certificado",
         certModalDesc: "Insira seu nome completo para gerar o certificado de conclusão da partida.",
         certModalPlaceholder: "Nome Completo do Aluno",
-        certModalBtn: "Emitir PDF"
+        certModalBtn: "Emitir PDF",
+        exportGuide: "Guia de Estudos (Exportar)"
     },
     en: {
         title: "Top Trumps", subtitle: "Materials Engineering",
@@ -197,7 +212,8 @@ const i18n = {
         certModalTitle: "Issue Certificate",
         certModalDesc: "Enter your full name to generate the match completion certificate.",
         certModalPlaceholder: "Student's Full Name",
-        certModalBtn: "Generate PDF"
+        certModalBtn: "Generate PDF",
+        exportGuide: "Study Guide (Export)"
     }
 };
 
@@ -276,25 +292,53 @@ async function loadDeck() {
         const rows = textData.split('\n');
         MASTER_DECK = [];
         
+        if (rows.length === 0) return;
+        
+        const headerRow = rows[0].trim().split(';');
+        
+        function findColIndex(possibleNames, defaultIdx) {
+            for (let name of possibleNames) {
+                const idx = headerRow.findIndex(h => {
+                    const normalizedH = h.trim().toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ');
+                    const normalizedName = name.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ');
+                    return normalizedH === normalizedName || normalizedH.includes(normalizedName);
+                });
+                if (idx !== -1) return idx;
+            }
+            return defaultIdx;
+        }
+
+        const colId = findColIndex(['id'], 0);
+        const colTitlePt = findColIndex(['titulo pt', 'titulo_pt', 'title pt', 'title_pt'], 1);
+        const colLifetime = findColIndex(['vida util', 'vida_util', 'lifetime'], 2);
+        const colCost = findColIndex(['custo', 'cost'], 3);
+        const colImpact = findColIndex(['impacto diario', 'impacto_diario', 'daily impact', 'impact'], 4);
+        const colResistance = findColIndex(['resistencia', 'resistance'], 5);
+        const colMaxTemp = findColIndex(['temp max', 'temp_max', 'max temp', 'maxtemp'], 6);
+        const colTitleEn = findColIndex(['titulo en', 'titulo_en', 'title en', 'title_en'], 8);
+        const colIcon = findColIndex(['nome imagem', 'nome_imagem', 'image name', 'image', 'icon'], 9);
+        const colDescPt = findColIndex(['descricao pt', 'descricao_pt', 'description pt', 'description_pt'], 10);
+        const colDescEn = findColIndex(['descricao en', 'descricao_en', 'description en', 'description_en'], 11);
+
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i].trim();
             if (row === '') continue;
             
             const cols = row.split(';'); // Ponto e vírgula do Excel-BR
             MASTER_DECK.push({
-                id: parseInt(cols[0]),
-                icon: cols[9] || 'box',
+                id: parseInt(cols[colId]),
+                icon: cols[colIcon] || 'box',
                 color: 'bg-blue-600',
                 stats: {
-                    lifetime: parseInt(cols[2]),
-                    cost: parseInt(cols[3]),
-                    impact: parseInt(cols[4]),
-                    resistance: parseInt(cols[5]),
-                    maxTemp: parseInt(cols[6])
+                    lifetime: parseInt(cols[colLifetime]),
+                    cost: parseInt(cols[colCost]),
+                    impact: parseInt(cols[colImpact]),
+                    resistance: parseInt(cols[colResistance]),
+                    maxTemp: parseInt(cols[colMaxTemp])
                 },
-                title: { pt: cols[1], en: cols[8] },
+                title: { pt: cols[colTitlePt], en: cols[colTitleEn] },
                 type: { pt: "Material", en: "Material" },
-                desc: { pt: cols[10], en: cols[11] }
+                desc: { pt: cols[colDescPt], en: cols[colDescEn] }
             });
         }
         console.log("Cartas carregadas:", MASTER_DECK.length);
@@ -361,6 +405,37 @@ function updateInfoTexts() {
         el('cert-desc').innerText = t('certModalDesc');
         el('cert-full-name').placeholder = t('certModalPlaceholder');
         el('cert-btn-text').innerText = t('certModalBtn');
+    }
+
+    // Tradução do rodapé da página principal
+    if (el('footer-text')) {
+        el('footer-text').innerText = currentLang === 'pt' 
+            ? 'Desenvolvido por Glauber Santiago e Marcelo Cilla para o' 
+            : 'Developed by Glauber Santiago and Marcelo Cilla for';
+    }
+
+    // Tradução dos atributos "title" dos botões do cabeçalho
+    if (el('btn-cert')) {
+        el('btn-cert').title = currentLang === 'pt' ? 'Emitir Certificado' : 'Issue Certificate';
+    }
+    if (el('btn-info')) {
+        el('btn-info').title = currentLang === 'pt' ? 'Informações' : 'Information';
+    }
+    if (el('btn-music')) {
+        el('btn-music').title = currentLang === 'pt' ? 'Tocar/Pausar Música' : 'Play/Pause Music';
+    }
+    if (el('volume-slider')) {
+        el('volume-slider').title = currentLang === 'pt' ? 'Volume' : 'Volume';
+    }
+    if (el('btn-next-music')) {
+        el('btn-next-music').title = currentLang === 'pt' ? 'Próxima Faixa' : 'Next Track';
+    }
+
+    // Tradução do descritivo do QR Code
+    if (el('qrcode-modal-desc')) {
+        el('qrcode-modal-desc').innerText = currentLang === 'pt'
+            ? 'Escaneie para acessar o jogo no celular!'
+            : 'Scan to play the game on your mobile device!';
     }
 }
 
@@ -898,6 +973,11 @@ function _screenAuth() {
                 <i data-lucide="gamepad-2" class="w-6 h-6"></i>
                 ${t('loginBtn')}
             </button>
+            <button onclick="toggleQRCodeModal()"
+                class="mt-4 w-full flex items-center justify-center gap-2 bg-blue-900/40 hover:bg-blue-800 text-blue-300 font-medium py-3 rounded-xl border border-blue-700/50 transition-all hover:scale-105">
+                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                QR Code
+            </button>
         </div>
     </div>`;
 }
@@ -951,7 +1031,7 @@ function _screenLobby() {
                 </button>
                 <button onclick="exportStudyGuide()"
                     class="w-full bg-blue-900/40 hover:bg-blue-800 text-blue-300 font-medium py-3 rounded-xl border border-blue-700/50 transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="book-open" class="w-4 h-4"></i> Guia de Estudos (Exportar)
+                    <i data-lucide="book-open" class="w-4 h-4"></i> ${t('exportGuide')}
                 </button>
                 <button onclick="toggleCertModal()"
                     class="w-full bg-yellow-950/40 hover:bg-yellow-800 text-yellow-300 font-medium py-3 rounded-xl border border-yellow-700/50 transition-all flex items-center justify-center gap-2">
@@ -1002,6 +1082,9 @@ function _renderGame(app) {
                 </button>
                 <button onclick="goToLobby()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xl py-4 px-8 rounded-full transition-all flex items-center gap-2">
                     <i data-lucide="users" class="w-5 h-5"></i> ${t('lobby')}
+                </button>
+                <button onclick="toggleQRCodeModal()" class="bg-blue-900/40 hover:bg-blue-800 text-blue-300 font-bold text-xl py-4 px-8 rounded-full border border-blue-700/50 transition-all flex items-center gap-2 transform hover:scale-105">
+                    <i data-lucide="qr-code" class="w-5 h-5"></i> QR Code
                 </button>
             </div>
         </div>`;
@@ -1340,29 +1423,29 @@ loadDeck().then(() => init());
 function exportStudyGuide() {
     sessionStats.studyGuideExports++;
     if (MASTER_DECK.length === 0) {
-        _showToast("Aguarde o carregamento das cartas...");
+        _showToast(currentLang === 'pt' ? "Aguarde o carregamento das cartas..." : "Please wait for the cards to load...");
         return;
     }
 
     let rowsHtml = MASTER_DECK.map(card => `
         <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-3 font-bold text-slate-800">${card.title.pt}</td>
-            <td class="py-4 px-3 text-slate-600 text-sm italic">${card.type.pt}</td>
+            <td class="py-4 px-3 font-bold text-slate-800">${card.title[currentLang] || card.title.pt}</td>
+            <td class="py-4 px-3 text-slate-600 text-sm italic">${card.type[currentLang] || card.type.pt}</td>
             <td class="py-4 px-3 text-center font-mono">${card.stats.lifetime}</td>
             <td class="py-4 px-3 text-center font-mono">${card.stats.cost}</td>
             <td class="py-4 px-3 text-center font-mono">${card.stats.impact}</td>
             <td class="py-4 px-3 text-center font-mono">${card.stats.resistance}</td>
             <td class="py-4 px-3 text-center font-mono">${card.stats.maxTemp}°C</td>
-            <td class="py-4 px-3 text-slate-700 text-sm leading-relaxed">${card.desc.pt}</td>
+            <td class="py-4 px-3 text-slate-700 text-sm leading-relaxed">${card.desc[currentLang] || card.desc.pt}</td>
         </tr>
     `).join('');
 
     const guideHtml = `
     <!DOCTYPE html>
-    <html lang="pt-BR">
+    <html lang="${currentLang === 'pt' ? 'pt-BR' : 'en-US'}">
     <head>
         <meta charset="UTF-8">
-        <title>Guia de Estudos: Ciência e Engenharia de Materiais - DEMa UFSCar</title>
+        <title>${currentLang === 'pt' ? 'Guia de Estudos: Ciência e Engenharia de Materiais - DEMa UFSCar' : 'Study Guide: Materials Science and Engineering - DEMa UFSCar'}</title>
         <script src="https://cdn.tailwindcss.com"><\/script>
         <style>
             @media print { .no-print { display: none; } }
@@ -1376,22 +1459,32 @@ function exportStudyGuide() {
                     <img src="https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-10 w-auto">
                 </div>
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight">Guia de Estudos</h1>
-                    <h2 class="text-lg md:text-xl font-bold text-blue-600">Ciência e Engenharia de Materiais</h2>
-                    <p class="text-slate-500 mt-1 text-xs md:text-sm font-medium">Departamento de Engenharia de Materiais (DEMa) - UFSCar</p>
+                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight">
+                        ${currentLang === 'pt' ? 'Guia de Estudos' : 'Study Guide'}
+                    </h1>
+                    <h2 class="text-lg md:text-xl font-bold text-blue-600">
+                        ${currentLang === 'pt' ? 'Ciência e Engenharia de Materiais' : 'Materials Science and Engineering'}
+                    </h2>
+                    <p class="text-slate-500 mt-1 text-xs md:text-sm font-medium">
+                        ${currentLang === 'pt' ? 'Departamento de Engenharia de Materiais (DEMa) - UFSCar' : 'Department of Materials Engineering (DEMa) - UFSCar'}
+                    </p>
                 </div>
             </div>
             <div class="text-right no-print">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg">Imprimir / PDF</button>
+                <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg">
+                    ${currentLang === 'pt' ? 'Imprimir / PDF' : 'Print / PDF'}
+                </button>
             </div>
         </header>
 
         <section class="mb-10 p-6 bg-blue-50 rounded-2xl border border-blue-100">
             <h3 class="text-blue-800 font-bold mb-2 flex items-center gap-2 text-lg">
-                🎯 Objetivo Pedagógico
+                🎯 ${currentLang === 'pt' ? 'Objetivo Pedagógico' : 'Pedagogical Objective'}
             </h3>
             <p class="text-blue-900/80 leading-relaxed italic">
-                Este guia consolida os dados técnicos utilizados no simulador Super Trunfo. O objetivo é permitir a análise comparativa entre diferentes classes de materiais, facilitando a internalização da relação entre estrutura, propriedades e custo para aplicações na engenharia.
+                ${currentLang === 'pt' 
+                    ? 'Este guia consolida os dados técnicos utilizados no simulador Super Trunfo. O objetivo é permitir a análise comparativa entre diferentes classes de materiais, facilitando a internalização da relação entre estrutura, propriedades e custo para aplicações na engenharia.' 
+                    : 'This guide consolidates the technical data used in the Top Trumps simulator. The objective is to allow comparative analysis between different classes of materials, facilitating the internalization of the relationship between structure, properties, and cost for engineering applications.'}
             </p>
         </section>
 
@@ -1399,14 +1492,14 @@ function exportStudyGuide() {
             <table class="w-full text-left border-collapse bg-white">
                 <thead>
                     <tr class="bg-slate-800 text-white">
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest">Material</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest">Classe</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">Vida Útil</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">Custo</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">Impacto</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">Resist.</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">Temp. Máx</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest w-1/3">Descrição Técnica</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest">${currentLang === 'pt' ? 'Material' : 'Material'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest">${currentLang === 'pt' ? 'Classe' : 'Class'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Vida Útil' : 'Lifetime'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Custo' : 'Cost'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Impacto' : 'Daily Impact'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Resist.' : 'Resistance'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Temp. Máx' : 'Max Temp'}</th>
+                        <th class="py-4 px-3 uppercase text-xs tracking-widest w-1/3">${currentLang === 'pt' ? 'Descrição Técnica' : 'Technical Description'}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1416,7 +1509,7 @@ function exportStudyGuide() {
         </div>
 
         <footer class="mt-12 pt-6 border-t border-gray-200 text-center text-slate-400 text-xs">
-            Curadoria dos dados - Prof. Dr. Marcelo Cilla
+            ${currentLang === 'pt' ? 'Curadoria dos dados - Prof. Dr. Marcelo Cilla' : 'Data Curatorship - Prof. Dr. Marcelo Cilla'}
         </footer>
     </body>
     </html>`;
@@ -1429,6 +1522,26 @@ function exportStudyGuide() {
 function toggleCertModal() {
     const modal = document.getElementById('cert-modal');
     const content = document.getElementById('cert-modal-content');
+    if (!modal || !content) return;
+    
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+        playSfx('click');
+    } else {
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+        playSfx('click');
+    }
+}
+
+function toggleQRCodeModal() {
+    const modal = document.getElementById('qrcode-modal');
+    const content = document.getElementById('qrcode-modal-content');
     if (!modal || !content) return;
     
     if (modal.classList.contains('hidden')) {
@@ -1502,7 +1615,7 @@ function generateCertificate() {
     <html lang="${currentLang}">
     <head>
         <meta charset="UTF-8">
-        <title>Certificado - Super Trunfo Materiais - DEMa UFSCar</title>
+        <title>${currentLang === 'pt' ? 'Certificado - Super Trunfo Materiais - DEMa UFSCar' : 'Certificate - Top Trumps Materials - DEMa UFSCar'}</title>
         <script src="https://cdn.tailwindcss.com"><\/script>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Montserrat:wght@400;600;700&display=swap');
@@ -1539,12 +1652,18 @@ function generateCertificate() {
                         <img src="https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/dema-inteiro-branco-horizontal.svg" class="h-8 w-auto">
                     </div>
                     <div>
-                        <h3 class="text-[10px] uppercase tracking-widest text-slate-500 font-bold leading-none">Universidade Federal de São Carlos</h3>
-                        <h4 class="text-[12px] uppercase tracking-wide text-blue-900 font-black mt-1 leading-none">Departamento de Engenharia de Materiais - DEMa</h4>
+                        <h3 class="text-[10px] uppercase tracking-widest text-slate-500 font-bold leading-none">
+                            ${currentLang === 'pt' ? 'Universidade Federal de São Carlos' : 'Federal University of São Carlos'}
+                        </h3>
+                        <h4 class="text-[12px] uppercase tracking-wide text-blue-900 font-black mt-1 leading-none">
+                            ${currentLang === 'pt' ? 'Departamento de Engenharia de Materiais - DEMa' : 'Department of Materials Engineering - DEMa'}
+                        </h4>
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block leading-none mb-1">Código do Certificado</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block leading-none mb-1">
+                        ${currentLang === 'pt' ? 'Código do Certificado' : 'Certificate Code'}
+                    </span>
                     <strong class="text-xs text-blue-900 font-mono leading-none">${verificationId}</strong>
                 </div>
             </header>
@@ -1553,7 +1672,9 @@ function generateCertificate() {
             <div class="flex-1 grid grid-cols-12 gap-8 items-center">
                 <!-- Lado Esquerdo: Certificação e Nome -->
                 <main class="col-span-7 flex flex-col justify-center pr-6 border-r border-slate-200">
-                    <h1 class="font-diploma text-4xl text-amber-600 font-extrabold tracking-wide mb-1 uppercase leading-none">Certificado de Participação</h1>
+                    <h1 class="font-diploma text-4xl text-amber-600 font-extrabold tracking-wide mb-1 uppercase leading-none">
+                        ${currentLang === 'pt' ? 'Certificado de Participação' : 'Certificate of Participation'}
+                    </h1>
                     <span class="text-[9px] font-bold text-red-500 uppercase tracking-widest block mb-5">[ ${currentLang === 'pt' ? 'Simulação de Jogo - Certificado Não Oficial' : 'Game Simulation - Unofficial Certificate'} ]</span>
                     
                     <p class="text-slate-600 text-xs leading-relaxed mb-4">
@@ -1578,7 +1699,7 @@ function generateCertificate() {
                     <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
                         <div class="bg-blue-900 text-white px-3 py-2 font-bold uppercase tracking-wider text-[9px] flex justify-between items-center leading-none">
                             <span>${currentLang === 'pt' ? 'Relatório Técnico de Engajamento' : 'Technical Engagement Report'}</span>
-                            <span class="text-[8px] opacity-75 font-normal">SESSÃO: #${verificationId}</span>
+                            <span class="text-[8px] opacity-75 font-normal">${currentLang === 'pt' ? 'SESSÃO' : 'SESSION'}: #${verificationId}</span>
                         </div>
                         
                         <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] bg-slate-50/50">
@@ -1608,7 +1729,7 @@ function generateCertificate() {
                             </div>
                             <div class="flex flex-col border-t border-slate-100 pt-1.5">
                                 <span class="text-slate-500 font-medium">${currentLang === 'pt' ? 'Rodadas Jogadas' : 'Rounds Played'}</span>
-                                <strong class="text-slate-800">${sessionStats.roundsPlayed} (${sessionStats.roundsWon} V / ${sessionStats.roundsLost} D)</strong>
+                                <strong class="text-slate-800">${sessionStats.roundsPlayed} (${sessionStats.roundsWon} ${currentLang === 'pt' ? 'V' : 'W'} / ${sessionStats.roundsLost} ${currentLang === 'pt' ? 'D' : 'L'})</strong>
                             </div>
                         </div>
                     </div>
@@ -1631,14 +1752,16 @@ function generateCertificate() {
             <!-- Rodapé: Datas e Assinaturas -->
             <footer class="flex justify-between items-end border-t border-slate-200 pt-4 mt-4">
                 <div class="text-[9px] text-slate-400 leading-normal max-w-xl">
-                    Emitido em: ${dateFormatted} às ${timeFormatted}<br>
-                    Curso de Engenharia de Materiais - Departamento de Engenharia de Materiais - UFSCar<br>
+                    ${currentLang === 'pt' ? 'Emitido em' : 'Issued on'}: ${dateFormatted} ${currentLang === 'pt' ? 'às' : 'at'} ${timeFormatted}<br>
+                    ${currentLang === 'pt' ? 'Curso de Engenharia de Materiais - Departamento de Engenharia de Materiais - UFSCar' : 'Materials Engineering Course - Department of Materials Engineering - UFSCar'}<br>
                     <span class="text-red-500 font-bold uppercase tracking-wider text-[8px]">${currentLang === 'pt' ? '*Este é um certificado de jogo/simulação lúdica e não confere créditos acadêmicos oficiais' : '*This is a game/simulation certificate and does not confer official academic credits'}</span>
                 </div>
                 <div class="text-center">
                     <div class="h-px bg-slate-400 w-44 mb-1.5 mx-auto"></div>
                     <p class="text-[11px] font-bold text-slate-700 leading-none">Prof. Dr. Marcelo Cilla</p>
-                    <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1 leading-none">Curador de Dados - DEMa UFSCar</p>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1 leading-none">
+                        ${currentLang === 'pt' ? 'Curador de Dados - DEMa UFSCar' : 'Data Curator - DEMa UFSCar'}
+                    </p>
                 </div>
             </footer>
         </div>
