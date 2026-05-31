@@ -47,6 +47,9 @@
 
     <div class="fixed top-4 right-4 z-50 flex gap-3 items-center">
         <div id="user-header" class="hidden"></div>
+        <button id="btn-install-pwa" onclick="installPWA()" class="hidden p-2 rounded-full bg-slate-800 text-blue-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Instalar Aplicativo">
+            <i data-lucide="download" class="w-5 h-5"></i>
+        </button>
         <button id="btn-cert" onclick="toggleCertModal()" class="p-2 rounded-full bg-slate-800 text-yellow-400 hover:bg-slate-700 transition-colors border border-slate-600 shadow-lg" title="Emitir Certificado">
             <i data-lucide="award" class="w-5 h-5"></i>
         </button>
@@ -120,14 +123,14 @@
         </div>
     </div>
 
-    <footer class="fixed bottom-3 right-5 z-40 flex flex-col items-end opacity-70 hover:opacity-100 transition-opacity pointer-events-auto text-right">
-        <span id="footer-text" class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Desenvolvido por Glauber Santiago e Marcelo Cilla para o</span>
+    <div id="app" class="flex-1 flex flex-col p-4 pt-20 md:pt-28 w-full max-w-7xl mx-auto relative z-10"></div>
+
+    <footer class="mt-auto py-6 flex flex-col items-center justify-center gap-2 opacity-70 hover:opacity-100 transition-opacity text-center w-full z-10">
+        <span id="footer-text" class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 font-bold">Desenvolvido por Glauber Santiago e Marcelo Cilla para o</span>
         <a href="https://www.dema.ufscar.br" target="_blank" class="hover:scale-105 transition-transform" title="DEMa - UFSCar">
-            <img src="dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-6 md:h-8 w-auto">
+            <img src="dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-6 md:h-8 w-auto mx-auto">
         </a>
     </footer>
-
-    <div id="app" class="flex-1 flex flex-col p-4 pt-20 md:pt-28 w-full max-w-7xl mx-auto relative z-10"></div>
 
 <script>
 // ============================================================
@@ -439,6 +442,10 @@ function updateInfoTexts() {
     }
     if (el('btn-next-music')) {
         el('btn-next-music').title = currentLang === 'pt' ? 'Próxima Faixa' : 'Next Track';
+    }
+
+    if (el('btn-install-pwa')) {
+        el('btn-install-pwa').title = currentLang === 'pt' ? 'Instalar Aplicativo (PWA)' : 'Install App (PWA)';
     }
 
     // Tradução do descritivo do QR Code
@@ -1782,6 +1789,38 @@ function generateCertificate() {
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
 }
+
+// Controle de Instalação do PWA
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+    }
+});
+
+async function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`Resultado da instalação: ${outcome}`);
+    deferredPrompt = null;
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) {
+        installBtn.classList.add('hidden');
+    }
+}
+
+window.addEventListener('appinstalled', (evt) => {
+    console.log('PWA instalado com sucesso!');
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) {
+        installBtn.classList.add('hidden');
+    }
+});
 
 // Registra o Service Worker para PWA
 if ('serviceWorker' in navigator) {
