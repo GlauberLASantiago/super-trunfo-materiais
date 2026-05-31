@@ -3,6 +3,7 @@ const ASSETS = [
     './index.html',
     './manifest.json',
     './dema-inteiro-branco-horizontal.svg',
+    './icon-rocket.svg',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest',
     'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
