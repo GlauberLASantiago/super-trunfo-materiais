@@ -4,9 +4,6 @@ Este é um jogo interativo no estilo **Super Trumps (Super Trunfo)** desenvolvid
 
 O projeto foi curado pedagogicamente pelo **Departamento de Engenharia de Materiais (DEMa) da UFSCar**.
 
-<img width="1128" height="928" alt="image" src="https://github.com/user-attachments/assets/74fa9f86-4c21-41d5-94de-c8c0fa9cb719" />
-
-
 ---
 
 ## 🌟 Funcionalidades
@@ -19,12 +16,13 @@ O projeto foi curado pedagogicamente pelo **Departamento de Engenharia de Materi
 - **🔊 Painel de Áudio Premium**: Efeitos sonoros interativos de virada de cartas, vitória, derrota e empates, além de uma trilha sonora selecionável para criar um clima imersivo de jogabilidade.
 - **🇺🇸/🇧🇷 Totalmente Bilíngue**: Suporte completo a traduções em tempo real entre Português e Inglês para todas as interfaces, cartas, guia de estudos e certificados emitidos.
 - **📱 QR Code Integrado**: QR Code de acesso na tela inicial para facilitar a rápida conexão e teste em dispositivos móveis.
+- **📱 PWA (Progressive Web App)**: O jogo pode ser instalado diretamente no celular ou computador como um aplicativo nativo e funciona offline graças ao cacheamento dinâmico via Service Workers.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Core**: HTML5 semântico, JavaScript moderno (ES6+).
+- **Core**: HTML5 semântico, JavaScript moderno (ES6+), Web Manifest e Service Workers (para suporte offline).
 - **Estilização**: Tailwind CSS (via CDN) para layout responsivo e design moderno de vidro (glassmorphic).
 - **Biblioteca de Ícones**: Lucide Icons para elementos visuais consistentes.
 - **Impressão e PDF**: Motor nativo do navegador para geração fluida de certificados em PDF vetorial.

@@ -1,0 +1,18 @@
+{
+  "name": "Super Trunfo: Engenharia de Materiais",
+  "short_name": "Super Trunfo",
+  "description": "Jogo de cartas Super Trunfo sobre Ciência e Engenharia de Materiais - DEMa UFSCar",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#8DC63F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "dema-inteiro-branco-horizontal.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
