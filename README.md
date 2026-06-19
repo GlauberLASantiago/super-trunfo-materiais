@@ -6,7 +6,8 @@ O projeto foi curado pedagogicamente pelo **Departamento de Engenharia de Materi
 
 ---
 
-<img width="1128" height="928" alt="image" src="https://github.com/user-attachments/assets/cf46f800-e57d-4498-a9e4-1496a4eb24d0" />
+<img width="1268" height="795" alt="image" src="https://github.com/user-attachments/assets/8abf41bc-eab9-4555-a291-64b514ef6079" />
+
 
 
 ## 🌟 Funcionalidades
