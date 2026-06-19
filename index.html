@@ -1446,14 +1446,14 @@ function exportStudyGuide() {
 
     let rowsHtml = MASTER_DECK.map(card => `
         <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-3 font-bold text-slate-800">${card.title[currentLang] || card.title.pt}</td>
-            <td class="py-4 px-3 text-slate-600 text-sm italic">${card.type[currentLang] || card.type.pt}</td>
-            <td class="py-4 px-3 text-center font-mono">${card.stats.lifetime}</td>
-            <td class="py-4 px-3 text-center font-mono">${card.stats.cost}</td>
-            <td class="py-4 px-3 text-center font-mono">${card.stats.impact}</td>
-            <td class="py-4 px-3 text-center font-mono">${card.stats.resistance}</td>
-            <td class="py-4 px-3 text-center font-mono">${card.stats.maxTemp}°C</td>
-            <td class="py-4 px-3 text-slate-700 text-sm leading-relaxed">${card.desc[currentLang] || card.desc.pt}</td>
+            <td class="py-3 px-2 font-bold text-slate-800 align-middle">${card.title[currentLang] || card.title.pt}</td>
+            <td class="py-3 px-2 text-slate-600 text-sm italic align-middle">${card.type[currentLang] || card.type.pt}</td>
+            <td class="py-3 px-2 text-center font-mono align-middle">${card.stats.lifetime}</td>
+            <td class="py-3 px-2 text-center font-mono align-middle">${card.stats.cost}</td>
+            <td class="py-3 px-2 text-center font-mono align-middle">${card.stats.impact}</td>
+            <td class="py-3 px-2 text-center font-mono align-middle">${card.stats.resistance}</td>
+            <td class="py-3 px-2 text-center font-mono align-middle">${card.stats.maxTemp}°C</td>
+            <td class="py-3 px-2 text-slate-700 text-sm leading-relaxed align-middle">${card.desc[currentLang] || card.desc.pt}</td>
         </tr>
     `).join('');
 
@@ -1465,24 +1465,73 @@ function exportStudyGuide() {
         <title>${currentLang === 'pt' ? 'Guia de Estudos: Ciência e Engenharia de Materiais - DEMa UFSCar' : 'Study Guide: Materials Science and Engineering - DEMa UFSCar'}</title>
         <script src="https://cdn.tailwindcss.com"><\/script>
         <style>
-            @media print { .no-print { display: none; } }
             body { font-family: 'Inter', sans-serif; background: #fff; color: #1e293b; }
+            table { table-layout: fixed; width: 100%; }
+            th, td { word-wrap: break-word; overflow-wrap: break-word; }
+            @media print {
+                .no-print { display: none !important; }
+                body {
+                    background: #fff !important;
+                    color: #000 !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                @page {
+                    size: A4 portrait;
+                    margin: 12mm 10mm 12mm 10mm;
+                }
+                header {
+                    margin-bottom: 20px !important;
+                    padding-bottom: 10px !important;
+                }
+                section {
+                    margin-bottom: 15px !important;
+                    padding: 12px !important;
+                }
+                footer {
+                    margin-top: 20px !important;
+                    padding-top: 10px !important;
+                }
+                table {
+                    width: 100% !important;
+                    table-layout: fixed !important;
+                    border-collapse: collapse !important;
+                }
+                thead {
+                    display: table-header-group !important;
+                }
+                tr {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                th, td {
+                    font-size: 10px !important;
+                    line-height: 1.2 !important;
+                    padding: 6px 4px !important;
+                }
+                th {
+                    background-color: #1e293b !important;
+                    color: #ffffff !important;
+                }
+            }
         </style>
     </head>
     <body class="p-8 md:p-12">
-        <header class="mb-12 border-b-4 border-blue-600 pb-6 flex justify-between items-end">
+        <header class="mb-8 border-b-4 border-blue-600 pb-4 flex justify-between items-end">
             <div class="flex items-center gap-4">
                 <div class="bg-slate-900 p-2.5 rounded-xl hidden sm:block">
                     <img src="https://raw.githubusercontent.com/GlauberLASantiago/super-trunfo-materiais/main/dema-inteiro-branco-horizontal.svg" alt="DEMa Logo" class="h-10 w-auto">
                 </div>
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight">
+                    <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight">
                         ${currentLang === 'pt' ? 'Guia de Estudos' : 'Study Guide'}
                     </h1>
-                    <h2 class="text-lg md:text-xl font-bold text-blue-600">
+                    <h2 class="text-lg font-bold text-blue-600">
                         ${currentLang === 'pt' ? 'Ciência e Engenharia de Materiais' : 'Materials Science and Engineering'}
                     </h2>
-                    <p class="text-slate-500 mt-1 text-xs md:text-sm font-medium">
+                    <p class="text-slate-500 mt-1 text-xs font-medium">
                         ${currentLang === 'pt' ? 'Departamento de Engenharia de Materiais (DEMa) - UFSCar' : 'Department of Materials Engineering (DEMa) - UFSCar'}
                     </p>
                 </div>
@@ -1494,29 +1543,29 @@ function exportStudyGuide() {
             </div>
         </header>
 
-        <section class="mb-10 p-6 bg-blue-50 rounded-2xl border border-blue-100">
-            <h3 class="text-blue-800 font-bold mb-2 flex items-center gap-2 text-lg">
+        <section class="mb-6 p-5 bg-blue-50 rounded-xl border border-blue-100">
+            <h3 class="text-blue-800 font-bold mb-1 flex items-center gap-2 text-md">
                 🎯 ${currentLang === 'pt' ? 'Objetivo Pedagógico' : 'Pedagogical Objective'}
             </h3>
-            <p class="text-blue-900/80 leading-relaxed italic">
+            <p class="text-blue-900/80 leading-relaxed text-sm italic">
                 ${currentLang === 'pt' 
                     ? 'Este guia consolida os dados técnicos utilizados no simulador Super Trunfo. O objetivo é permitir a análise comparativa entre diferentes classes de materiais, facilitando a internalização da relação entre estrutura, propriedades e custo para aplicações na engenharia.' 
                     : 'This guide consolidates the technical data used in the Top Trumps simulator. The objective is to allow comparative analysis between different classes of materials, facilitating the internalization of the relationship between structure, properties, and cost for engineering applications.'}
             </p>
         </section>
 
-        <div class="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
+        <div class="shadow-xl rounded-xl border border-gray-200 overflow-hidden print:shadow-none print:border-none print:overflow-visible">
             <table class="w-full text-left border-collapse bg-white">
                 <thead>
                     <tr class="bg-slate-800 text-white">
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest">${currentLang === 'pt' ? 'Material' : 'Material'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest">${currentLang === 'pt' ? 'Classe' : 'Class'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Vida Útil' : 'Lifetime'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Custo' : 'Cost'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Impacto' : 'Daily Impact'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Resist.' : 'Resistance'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest text-center">${currentLang === 'pt' ? 'Temp. Máx' : 'Max Temp'}</th>
-                        <th class="py-4 px-3 uppercase text-xs tracking-widest w-1/3">${currentLang === 'pt' ? 'Descrição Técnica' : 'Technical Description'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider font-bold" style="width: 16%;">${currentLang === 'pt' ? 'Material' : 'Material'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider font-bold" style="width: 10%;">${currentLang === 'pt' ? 'Classe' : 'Class'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider text-center font-bold" style="width: 8%;">${currentLang === 'pt' ? 'Vida Útil' : 'Lifetime'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider text-center font-bold" style="width: 6%;">${currentLang === 'pt' ? 'Custo' : 'Cost'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider text-center font-bold" style="width: 8%;">${currentLang === 'pt' ? 'Impacto' : 'Daily Impact'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider text-center font-bold" style="width: 6%;">${currentLang === 'pt' ? 'Resist.' : 'Resistance'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider text-center font-bold" style="width: 8%;">${currentLang === 'pt' ? 'Temp. Máx' : 'Max Temp'}</th>
+                        <th class="py-3 px-2 uppercase text-[10px] tracking-wider font-bold" style="width: 38%;">${currentLang === 'pt' ? 'Descrição Técnica' : 'Technical Description'}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1525,7 +1574,7 @@ function exportStudyGuide() {
             </table>
         </div>
 
-        <footer class="mt-12 pt-6 border-t border-gray-200 text-center text-slate-400 text-xs">
+        <footer class="mt-8 pt-4 border-t border-gray-200 text-center text-slate-400 text-xs">
             ${currentLang === 'pt' ? 'Curadoria dos dados - Prof. Dr. Marcelo Cilla' : 'Data Curatorship - Prof. Dr. Marcelo Cilla'}
         </footer>
     </body>
